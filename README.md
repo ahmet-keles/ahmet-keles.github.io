@@ -39,9 +39,8 @@ If Pages settings were ever changed: Settings → Pages → Source should be
 
 ## Adding a resume
 
-The Contact section has a disabled "Resume" button because no PDF is
-committed yet. To enable it:
+No resume button is rendered yet because no PDF is committed. To add one:
 
 1. Add your PDF at `assets/Ahmet-Keles-Resume.pdf`.
 2. In `index.html`, find the `RESUME:` comment in the Contact section and
-   replace the disabled `<span>` with the anchor tag shown in that comment.
+   insert the anchor tag shown in that comment.
