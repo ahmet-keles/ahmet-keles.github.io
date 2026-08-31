@@ -1,0 +1,179 @@
+/* A case study is one column of reading. Everything shares the same measure
+   so diagrams, prose, and tradeoff cards line up on a single left edge. */
+.case {
+  max-width: 860px;
+  padding-top: 40px;
+}
+
+.case-back,
+.case-foot-repo {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  font-weight: 500;
+  text-decoration: none;
+  color: var(--muted);
+}
+.case-back:hover,
+.case-foot-repo:hover { color: var(--accent); }
+
+.case-head {
+  margin: 26px 0 40px;
+}
+
+.case-head-row {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.case-title {
+  font-family: var(--serif);
+  font-size: clamp(2.1rem, 4.6vw, 3rem);
+  font-weight: 500;
+  letter-spacing: -0.025em;
+}
+
+.case-tagline {
+  font-size: 1.15rem;
+  color: var(--accent);
+  font-weight: 500;
+  max-width: 60ch;
+  margin-bottom: 24px;
+}
+
+.case-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.case-section { margin-bottom: 44px; }
+
+.case-h2 {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  padding-bottom: 10px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.case-summary {
+  font-size: 1.08rem;
+  color: var(--ink);
+  max-width: var(--measure);
+}
+
+.case-list {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  max-width: var(--measure);
+}
+.case-list li {
+  position: relative;
+  padding-left: 20px;
+  color: var(--ink-soft);
+  font-size: 15.5px;
+}
+.case-list li::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 10px;
+  width: 6px;
+  height: 1.5px;
+  background: var(--accent);
+}
+
+.case-disclosures {
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+/* ---------- tradeoffs ---------- */
+
+.tradeoffs {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tradeoff {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 18px 20px;
+}
+
+.tradeoff-choice {
+  font-weight: 600;
+  font-size: 15.5px;
+  color: var(--ink);
+  margin-bottom: 14px;
+}
+
+.tradeoff-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+.tradeoff-cols p {
+  font-size: 14.5px;
+  color: var(--ink-soft);
+}
+
+.tradeoff-label {
+  display: block;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--shipped);
+  margin-bottom: 5px;
+}
+.tradeoff-label-cost { color: var(--wip); }
+
+/* ---------- limitations ---------- */
+
+.case-limits {
+  border-left: 3px solid var(--wip);
+  background: var(--wip-bg);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  padding: 20px 24px;
+  margin-bottom: 40px;
+}
+
+.case-limits-title {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--wip);
+  margin-bottom: 14px;
+}
+
+.case-limits .case-list li::before { background: var(--wip); }
+
+.case-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-top: 22px;
+  border-top: 1px solid var(--rule);
+}
+
+@media (max-width: 640px) {
+  .tradeoff-cols { grid-template-columns: 1fr; gap: 14px; }
+  .case { padding-top: 28px; }
+}

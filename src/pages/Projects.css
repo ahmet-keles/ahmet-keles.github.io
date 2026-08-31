@@ -1,0 +1,54 @@
+.page { padding-top: 56px; }
+
+.page-title {
+  font-family: var(--serif);
+  font-size: clamp(2.1rem, 4.4vw, 3rem);
+  font-weight: 500;
+  letter-spacing: -0.024em;
+  margin-bottom: 16px;
+}
+
+.page-lede {
+  font-size: 1.1rem;
+  color: var(--ink-soft);
+  max-width: 66ch;
+  margin-bottom: 32px;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.filter {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 99px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+.filter:hover { color: var(--accent); border-color: var(--accent); }
+.filter.is-active {
+  color: var(--accent-ink);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.filter-count {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 24px;
+}
+
+.projects-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
