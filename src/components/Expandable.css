@@ -1,0 +1,31 @@
+.expandable {
+  border-top: 1px solid var(--rule-soft);
+}
+
+.expandable-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 16px 2px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--sans);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+.expandable-trigger:hover { color: var(--accent); }
+
+.expandable-chevron {
+  flex: none;
+  color: var(--accent);
+  transition: transform 0.2s ease;
+}
+.expandable.is-open .expandable-chevron { transform: rotate(90deg); }
+
+.expandable-panel {
+  padding: 0 2px 18px 26px;
+}

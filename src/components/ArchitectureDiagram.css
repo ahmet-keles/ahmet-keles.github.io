@@ -1,0 +1,71 @@
+.diagram {
+  margin: 0 0 34px;
+}
+
+/* Diagrams keep their aspect ratio; on narrow screens they scroll inside
+   their own container rather than forcing the page to scroll sideways. */
+.diagram-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 20px 18px;
+}
+
+.diagram-svg {
+  display: block;
+  width: 100%;
+  min-width: 620px;
+  height: auto;
+  color: var(--faint); /* arrowheads inherit this */
+}
+
+.diagram-edge line {
+  stroke: var(--faint);
+  stroke-width: 1.5;
+}
+
+.diagram-edge-label {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  fill: var(--muted);
+}
+
+.diagram-node rect {
+  fill: var(--surface-2);
+  stroke: var(--rule);
+  stroke-width: 1.5;
+}
+
+.diagram-node-label {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  fill: var(--ink);
+}
+
+.diagram-node-sub {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  fill: var(--muted);
+}
+
+/* Node kinds are distinguished by border treatment rather than fill colour,
+   so the diagram stays legible in both themes and in grayscale. */
+.kind-store rect {
+  stroke-dasharray: 4 3;
+}
+.kind-broker rect {
+  stroke: var(--accent);
+  fill: var(--accent-wash);
+}
+.kind-client rect {
+  fill: transparent;
+}
+
+.diagram figcaption {
+  margin-top: 10px;
+  font-size: 13.5px;
+  color: var(--muted);
+  max-width: 74ch;
+}
