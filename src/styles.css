@@ -497,3 +497,159 @@ main {
   .project { padding: 22px 20px; }
   .project-highlights { grid-template-columns: 1fr; }
 }
+
+/* ===================================================================
+   Routed pages (v2: React Router)
+   Everything above is the original design system, unchanged. The rules
+   below cover what multi-page routing adds: page headers, the project
+   index, and project detail pages.
+   =================================================================== */
+
+/* Active nav link for the current route. */
+.nav-links a.active {
+  color: var(--ink);
+  background: var(--surface-2);
+}
+
+/* Sub-pages open at a heading rather than the hero, so they need the
+   breathing room the hero used to provide. */
+.section-top { padding-top: 56px; }
+
+.page-title {
+  font-size: clamp(2rem, 4.5vw, 2.7rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 14px;
+}
+
+.page-lede {
+  font-size: 1.12rem;
+  color: var(--ink-soft);
+  max-width: 68ch;
+  margin-bottom: 28px;
+}
+
+.section-eyebrow a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.section-eyebrow a:hover { text-decoration: underline; }
+
+.section-more { margin-top: 18px; }
+
+/* Project cards link to their detail page from the title. */
+.project h3 a {
+  color: inherit;
+  text-decoration: none;
+}
+.project h3 a:hover { color: var(--accent); }
+
+.project-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.project-list .project-featured { margin-bottom: 0; }
+
+/* ---------- project detail ---------- */
+
+/* A detail page is one column of prose, so the whole article shares the
+   text measure — otherwise the full-width facts strip runs far past where
+   the paragraphs stop and the page looks unaligned. */
+.detail { max-width: 830px; }
+
+.detail-head {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.detail-head .page-title { margin-bottom: 8px; }
+
+.detail-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+/* Key/value strip: the numbers a reader wants before the prose. */
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1px;
+  margin: 0 0 36px;
+  padding: 0;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.fact {
+  background: var(--surface);
+  padding: 14px 18px;
+}
+
+.fact dt {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 5px;
+}
+
+.fact dd {
+  margin: 0;
+  font-size: 14.5px;
+  color: var(--ink);
+}
+
+.detail-section { margin-bottom: 30px; }
+
+.detail-section h2 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-bottom: 10px;
+}
+
+.detail-section p {
+  color: var(--ink-soft);
+  max-width: 74ch;
+}
+
+/* Limitations are called out rather than buried: an honest note about what
+   a project does not do yet is worth as much as the feature list. */
+.callout {
+  border-left: 3px solid var(--wip);
+  background: var(--wip-bg);
+  border-radius: 0 8px 8px 0;
+  padding: 18px 22px;
+  margin-bottom: 30px;
+}
+
+.callout h2 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--wip);
+  margin-bottom: 6px;
+}
+
+.callout p {
+  color: var(--ink-soft);
+  font-size: 15px;
+  max-width: 74ch;
+}
+
+.detail-back { margin-bottom: 8px; }
+
+.about-copy-lead p { font-size: 1.08rem; }
+
+.notfound { padding-top: 88px; }
+
+@media (max-width: 640px) {
+  .facts { grid-template-columns: 1fr; }
+  .section-top { padding-top: 40px; }
+}
