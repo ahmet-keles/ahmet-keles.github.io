@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>K-Map Looper</title>
+<meta name="description" content="Browser tool for drawing Karnaugh maps: fill cells, draw colored group loops with wrap-around, and export a clean PNG. Draws — doesn't solve.">
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#F7F7F4; --panel:#FFFFFF; --ink:#1C1F26; --muted:#5E6470; --line:#D5D8DE; --grid:#2B2F38;
+  --accent:#1B6CA8; --accent-ink:#fff; --cell-on:#EEF3F8;
+  --l1:#D7263D; --l2:#1B6CA8; --l3:#2A9D4B; --l4:#E08E00; --l5:#7B3FA0; --l6:#0E8C8C;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15171C; --panel:#1E2128; --ink:#ECEEF2; --muted:#9AA1AD; --line:#343946; --grid:#E4E7ED; --cell-on:#26303C;
+    --l1:#FF5A6E; --l2:#5AA6E8; --l3:#4CC96E; --l4:#FFB43A; --l5:#B57BE0; --l6:#3FC7C7;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15171C; --panel:#1E2128; --ink:#ECEEF2; --muted:#9AA1AD; --line:#343946; --grid:#E4E7ED; --cell-on:#26303C;
+  --l1:#FF5A6E; --l2:#5AA6E8; --l3:#4CC96E; --l4:#FFB43A; --l5:#B57BE0; --l6:#3FC7C7;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:14px;padding-block:20px;padding-inline:16px}
+.wrap{max-width:1060px;margin:0 auto;display:grid;grid-template-columns:300px 1fr;gap:24px}
+@media (max-width:760px){.wrap{grid-template-columns:1fr}}
+h1{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:20px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
+.sub{color:var(--muted);margin:0 0 18px;line-height:1.45}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px}
+.panel + .panel{margin-top:14px}
+.lab{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;margin:0 0 8px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button,select,input[type=text]{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:7px 11px;cursor:pointer}
+button:hover{border-color:var(--ink)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+input[type=text]{cursor:text;width:100%}
+.loops{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.loop{display:grid;grid-template-columns:14px 1fr auto;gap:8px;align-items:center;font-family:"IBM Plex Mono",monospace;font-size:12px}
+.sw{width:14px;height:14px;border-radius:3px;border:2px solid currentColor;box-sizing:border-box}
+.loop input{padding:4px 6px;font-size:12px}
+.loop .x{padding:3px 8px;font-size:12px}
+.hint{color:var(--muted);font-size:12px;line-height:1.45;margin:8px 0 0}
+.stage{display:flex;flex-direction:column;gap:12px;align-items:center}
+canvas{max-width:100%;height:auto;background:#fff;border:1px solid var(--line);border-radius:6px;touch-action:manipulation}
+.out{display:none;flex-direction:column;gap:6px;align-items:center}
+.out.show{display:flex}
+.out img{border:1px dashed var(--line);max-width:100%}
+.mode{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted)}
+kbd{font-family:"IBM Plex Mono",monospace;background:var(--cell-on);border:1px solid var(--line);border-radius:4px;padding:0 5px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div>
+    <h1>K-Map Looper</h1>
+    <p class="sub">A drawing tool only — it doesn't simplify anything. You fill the cells and pick the groups; it draws the loops cleanly so you can paste the image into your submission.</p>
+
+    <div class="panel">
+      <p class="lab">Map</p>
+      <div class="row">
+        <select id="vars" aria-label="Number of variables">
+          <option value="4">4 variables · AB \ CD</option>
+          <option value="3">3 variables · A \ BC</option>
+          <option value="2">2 variables · A \ B</option>
+        </select>
+        <button id="showM" class="on" type="button">minterm #s</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button id="fillAll0" type="button">all 0</button>
+        <button id="fillAll1" type="button">all 1</button>
+        <button id="clearVals" type="button">clear values</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <p class="lab">Mode</p>
+      <div class="row">
+        <button id="mFill" class="on" type="button">Fill cells</button>
+        <button id="mLoop" type="button">Draw loop</button>
+      </div>
+      <p class="hint" id="modeHint">Click a cell to cycle 0 → 1 → blank.</p>
+      <div id="loopTools" hidden>
+        <div class="row" style="margin-top:8px">
+          <button id="newLoop" class="primary" type="button">+ New loop</button>
+          <span class="mode" id="curLoop"></span>
+        </div>
+        <p class="hint">Click cells to add/remove them from the current loop. Wrap-around groups (top↔bottom, left↔right) are drawn as open-ended pieces automatically.</p>
+      </div>
+      <div class="loops" id="loopList"></div>
+    </div>
+
+    <div class="panel">
+      <p class="lab">Export</p>
+      <div class="row">
+        <button id="copyPng" class="primary" type="button">Copy PNG</button>
+        <button id="showPng" type="button">Show PNG</button>
+        <button id="dlPng" type="button">Download PNG</button>
+      </div>
+      <p class="hint">In Pages: paste (⌘V) after Copy, or drag the shown image into the document. If neither works here, a screenshot (<kbd>⇧⌘4</kbd>) of the map is equally fine.</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <canvas id="c" width="720" height="640" aria-label="Karnaugh map"></canvas>
+    <div class="out" id="out"><img id="outImg" alt="Exported K-map PNG"><span class="hint">Right-click → Copy Image / Save Image, or drag it into Pages.</span></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+  const gray = n => n===1?['0','1']:n===2?['00','01','11','10']:['0','1'];
+  const LOOPCOLORS = ['--l1','--l2','--l3','--l4','--l5','--l6'];
+  let cfg, vals, loops = [], cur = -1, mode = 'fill', showM = true;
+
+  function setup(n){
+    if(n===4) cfg={rowLab:'AB',colLab:'CD',rows:gray(2),cols:gray(2),rowBits:2,colBits:2};
+    else if(n===3) cfg={rowLab:'A',colLab:'BC',rows:gray(1),cols:gray(2),rowBits:1,colBits:2};
+    else cfg={rowLab:'A',colLab:'B',rows:gray(1),cols:gray(1),rowBits:1,colBits:1};
+    vals = cfg.rows.map(()=>cfg.cols.map(()=>'0'));
+    loops=[]; cur=-1; renderList(); draw();
+  }
+  const R=()=>cfg.rows.length, C=()=>cfg.cols.length;
+  const minterm=(r,c)=>(parseInt(cfg.rows[r],2)<<cfg.colBits)|parseInt(cfg.cols[c],2);
+
+  // geometry
+  const M={left:110,top:96,cell:110,pad:44};
+  function geom(){
+    const w=M.left+C()*M.cell+M.pad, h=M.top+R()*M.cell+M.pad;
+    if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;}
+    return {w,h};
+  }
+  const cellX=c=>M.left+c*M.cell, cellY=r=>M.top+r*M.cell;
+
+  function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+
+  function runs(idxs){ // linear contiguous runs of sorted indices; wrap is handled by open edges
+    const out=[]; let run=[];
+    idxs.forEach(i=>{ if(run.length&&i!==run[run.length-1]+1){out.push(run);run=[];} run.push(i); });
+    if(run.length) out.push(run); return out;
+  }
+
+  function draw(){
+    const {w,h}=geom();
+    ctx.clearRect(0,0,w,h); ctx.fillStyle='#fff'; ctx.fillRect(0,0,w,h);
+    const ink='#1C1F26', grid='#2B2F38';
+    ctx.font='600 20px "IBM Plex Mono", monospace'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillStyle=ink;
+    // headers
+    ctx.fillText(cfg.rowLab+' \\ '+cfg.colLab, M.left/2+6, M.top/2+8);
+    cfg.cols.forEach((c,i)=>ctx.fillText(c, cellX(i)+M.cell/2, M.top-24));
+    cfg.rows.forEach((r,i)=>ctx.fillText(r, M.left-34, cellY(i)+M.cell/2));
+    // cells
+    for(let r=0;r<R();r++)for(let c=0;c<C();c++){
+      const x=cellX(c),y=cellY(r);
+      ctx.fillStyle = vals[r][c]==='1' ? '#EEF3F8' : '#fff'; ctx.fillRect(x,y,M.cell,M.cell);
+      ctx.strokeStyle=grid; ctx.lineWidth=2; ctx.strokeRect(x,y,M.cell,M.cell);
+      ctx.fillStyle=ink; ctx.font='600 34px "IBM Plex Mono", monospace';
+      ctx.fillText(vals[r][c], x+M.cell/2, y+M.cell/2+2);
+      if(showM){ctx.font='400 13px "IBM Plex Mono", monospace'; ctx.fillStyle='#8A909B'; ctx.textAlign='right'; ctx.fillText('m'+minterm(r,c), x+M.cell-7, y+13); ctx.textAlign='center';}
+    }
+    // loops
+    loops.forEach((L,li)=>{
+      const color=css(LOOPCOLORS[li%LOOPCOLORS.length]);
+      const cells=[...L.cells].map(k=>k.split(',').map(Number));
+      if(!cells.length) return;
+      const rs=[...new Set(cells.map(x=>x[0]))].sort((a,b)=>a-b), cs=[...new Set(cells.map(x=>x[1]))].sort((a,b)=>a-b);
+      const product = rs.length*cs.length===cells.length;
+      const inset=10+ (li%3)*7; // stagger nested loops
+      ctx.strokeStyle=color; ctx.lineWidth=4; ctx.setLineDash(product?[]:[8,6]);
+      const rowRuns=product?runs(rs):[], colRuns=product?runs(cs):[];
+      const pieces=[];
+      if(product){ rowRuns.forEach(rr=>colRuns.forEach(cr=>pieces.push([rr,cr]))); }
+      else cells.forEach(x=>pieces.push([[x[0]],[x[1]]]));
+      pieces.forEach(([rr,cr])=>{
+        const r0=rr[0], r1=rr[rr.length-1], c0=cr[0], c1=cr[cr.length-1];
+        const openTop = product && rr.length<R() && rs.includes((r0-1+R())%R()) && r0===0;
+        const openBot = product && rr.length<R() && rs.includes((r1+1)%R()) && r1===R()-1;
+        const openL = product && cr.length<C() && cs.includes((c0-1+C())%C()) && c0===0;
+        const openR = product && cr.length<C() && cs.includes((c1+1)%C()) && c1===C()-1;
+        const ext=22;
+        let x0=cellX(c0)+inset, x1=cellX(c1)+M.cell-inset, y0=cellY(r0)+inset, y1=cellY(r1)+M.cell-inset;
+        if(openTop) y0=cellY(0)-ext; if(openBot) y1=cellY(R()-1)+M.cell+ext;
+        if(openL) x0=cellX(0)-ext; if(openR) x1=cellX(C()-1)+M.cell+ext;
+        const rad=16;
+        ctx.beginPath();
+        // draw rounded rect but skip open edges
+        const p=new Path2D();
+        p.moveTo(x0+ (openL||openTop?0:rad), y0);
+        p.lineTo(x1-(openR||openTop?0:rad), y0);
+        if(!(openR||openTop)) p.quadraticCurveTo(x1,y0,x1,y0+rad);
+        p.lineTo(x1, y1-(openR||openBot?0:rad));
+        if(!(openR||openBot)) p.quadraticCurveTo(x1,y1,x1-rad,y1);
+        p.lineTo(x0+(openL||openBot?0:rad), y1);
+        if(!(openL||openBot)) p.quadraticCurveTo(x0,y1,x0,y1-rad);
+        p.lineTo(x0, y0+(openL||openTop?0:rad));
+        if(!(openL||openTop)) p.quadraticCurveTo(x0,y0,x0+rad,y0);
+        // erase open edges by drawing segments only: simpler approach — stroke full path then white-out open sides
+        ctx.stroke(p);
+        ctx.save(); ctx.strokeStyle='#fff'; ctx.lineWidth=6; ctx.setLineDash([]);
+        const wipe=(ax,ay,bx,by)=>{ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.stroke();};
+        if(openTop) wipe(x0-1,y0,x1+1,y0); if(openBot) wipe(x0-1,y1,x1+1,y1);
+        if(openL) wipe(x0,y0-1,x0,y1+1); if(openR) wipe(x1,y0-1,x1,y1+1);
+        ctx.restore();
+      });
+      ctx.setLineDash([]);
+      if(L.label){ctx.fillStyle=color; ctx.font='600 15px "IBM Plex Mono", monospace'; ctx.textAlign='left';
+        const [fr,fc]=cells[0]; ctx.fillText(L.label, cellX(fc)+8, cellY(fr)+M.cell-10); ctx.textAlign='center';}
+    });
+    // legend
+    ctx.textAlign='left'; ctx.font='400 13px "IBM Plex Sans", sans-serif'; ctx.fillStyle='#8A909B';
+    ctx.fillText('Karnaugh map · '+cfg.rowLab+' rows, '+cfg.colLab+' columns · Gray-code order', M.left, h-16);
+    ctx.textAlign='center';
+  }
+
+  function hit(ev){
+    const b=cv.getBoundingClientRect(); const x=(ev.clientX-b.left)*cv.width/b.width, y=(ev.clientY-b.top)*cv.height/b.height;
+    const c=Math.floor((x-M.left)/M.cell), r=Math.floor((y-M.top)/M.cell);
+    if(r<0||c<0||r>=R()||c>=C()) return null; return [r,c];
+  }
+  cv.addEventListener('click',ev=>{
+    const h=hit(ev); if(!h) return; const [r,c]=h;
+    if(mode==='fill'){ vals[r][c] = vals[r][c]==='0'?'1':vals[r][c]==='1'?'':'0'; }
+    else { if(cur<0) addLoop(); const k=r+','+c; const s=loops[cur].cells; s.has(k)?s.delete(k):s.add(k); renderList(); }
+    draw();
+  });
+
+  function addLoop(){ loops.push({cells:new Set(),label:''}); cur=loops.length-1; renderList(); }
+  function renderList(){
+    const el=document.getElementById('loopList'); el.innerHTML='';
+    loops.forEach((L,i)=>{
+      const row=document.createElement('div'); row.className='loop';
+      const sw=document.createElement('span'); sw.className='sw'; sw.style.color=css(LOOPCOLORS[i%LOOPCOLORS.length]); sw.title='select'; sw.style.cursor='pointer';
+      sw.onclick=()=>{cur=i;mode='loop';syncMode();renderList();};
+      const inp=document.createElement('input'); inp.type='text'; inp.id='loop-label-'+i; inp.placeholder='label (e.g. A·B̅) — '+[...L.cells].map(k=>{const [r,c]=k.split(',').map(Number);return 'm'+minterm(r,c);}).sort((a,b)=>+a.slice(1)-+b.slice(1)).join(' ');
+      inp.value=L.label; inp.oninput=()=>{L.label=inp.value;draw();};
+      const x=document.createElement('button'); x.className='x'; x.textContent='remove'; x.type='button'; x.onclick=()=>{loops.splice(i,1);cur=loops.length-1;renderList();draw();};
+      if(i===cur&&mode==='loop') row.style.outline='2px solid '+css(LOOPCOLORS[i%LOOPCOLORS.length]), row.style.outlineOffset='4px', row.style.borderRadius='4px';
+      row.append(sw,inp,x); el.append(row);
+    });
+    document.getElementById('curLoop').textContent = cur>=0?('editing loop '+(cur+1)):'';
+  }
+  function syncMode(){
+    document.getElementById('mFill').classList.toggle('on',mode==='fill');
+    document.getElementById('mLoop').classList.toggle('on',mode==='loop');
+    document.getElementById('loopTools').hidden = mode!=='loop';
+    document.getElementById('modeHint').textContent = mode==='fill'?'Click a cell to cycle 0 → 1 → blank.':'';
+  }
+  document.getElementById('mFill').onclick=()=>{mode='fill';syncMode();renderList();};
+  document.getElementById('mLoop').onclick=()=>{mode='loop';if(cur<0&&!loops.length)addLoop();syncMode();renderList();};
+  document.getElementById('newLoop').onclick=()=>{addLoop();draw();};
+  document.getElementById('vars').onchange=e=>setup(+e.target.value);
+  document.getElementById('showM').onclick=e=>{showM=!showM;e.target.classList.toggle('on',showM);draw();};
+  document.getElementById('fillAll0').onclick=()=>{vals=vals.map(r=>r.map(()=>'0'));draw();};
+  document.getElementById('fillAll1').onclick=()=>{vals=vals.map(r=>r.map(()=>'1'));draw();};
+  document.getElementById('clearVals').onclick=()=>{vals=vals.map(r=>r.map(()=>''));draw();};
+
+  // export
+  document.getElementById('copyPng').onclick=async()=>{
+    try{ const blob=await new Promise(r=>cv.toBlob(r,'image/png')); await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]); flash('Copied — paste into Pages with ⌘V'); }
+    catch(e){ showImg(); flash('Clipboard blocked here — use the image below (right-click → Copy Image) or screenshot.'); }
+  };
+  document.getElementById('showPng').onclick=()=>showImg();
+  document.getElementById('dlPng').onclick=()=>{ const a=document.createElement('a'); a.href=cv.toDataURL('image/png'); a.download='kmap.png'; a.click(); showImg(); };
+  function showImg(){ document.getElementById('outImg').src=cv.toDataURL('image/png'); document.getElementById('out').classList.add('show'); }
+  function flash(msg){ const h=document.getElementById('modeHint'); const old=h.textContent; h.textContent=msg; setTimeout(()=>{h.textContent=old;},3500); }
+
+  setup(4);
+  // sample so the page opens in a working state
+  document.fonts?.ready.then(draw);
+})();
+</script>
+
+</body>
+</html>
