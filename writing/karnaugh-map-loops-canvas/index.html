@@ -17,10 +17,16 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="../../assets/styles.css">
   <script>
-    try {
-      var t = localStorage.getItem("theme");
-      if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
-    } catch (e) {}
+    // Resolve the theme before first paint: no flash of the wrong colours, and
+    // the toggle stays hidden until this has run (see .theme-toggle in the CSS).
+    {
+      let theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      try {
+        const saved = localStorage.getItem("theme");
+        if (saved === "light" || saved === "dark") theme = saved;
+      } catch { /* storage blocked — fall back to the system preference */ }
+      document.documentElement.dataset.theme = theme;
+    }
   </script>
 </head>
 <body>
@@ -200,9 +206,9 @@ const openB = r1 === R - 1  && rs.includes(0)     && rs.length &lt; R;</code></p
   </main>
 
   <footer class="site-footer">
-    <p>© 2026 Ahmet Keles · Built with plain HTML &amp; CSS · <a href="https://github.com/ahmet-keles/ahmet-keles.github.io">Source</a></p>
+    <p>© 2026 Ahmet Keles · Hand-written HTML and CSS, no framework, no build step · <a href="https://github.com/ahmet-keles/ahmet-keles.github.io">Source</a></p>
   </footer>
 
-  <script src="../../assets/site.js" defer></script>
+  <script type="module" src="../../assets/site.js"></script>
 </body>
 </html>
