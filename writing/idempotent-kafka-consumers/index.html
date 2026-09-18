@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Idempotent Kafka consumers: the claim goes inside the transaction · Ahmet Keles</title>
+  <meta name="description" content="At-least-once delivery means every consumer will eventually see a duplicate. A processed-events ledger handles that, but where you put the ledger write decides whether a retry can lose the event forever.">
+  <link rel="canonical" href="https://ahmet-keles.github.io/writing/idempotent-kafka-consumers/">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Idempotent Kafka consumers: the claim goes inside the transaction">
+  <meta property="og:description" content="A processed-events ledger, why it must share the mutation's transaction, and how to classify failures so retries and dead letters do the right thing.">
+  <meta property="og:url" content="https://ahmet-keles.github.io/writing/idempotent-kafka-consumers/">
+  <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+  <link rel="alternate" type="application/rss+xml" title="Ahmet Keles — Writing" href="../../feed.xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <script>
+    try {
+      var t = localStorage.getItem("theme");
+      if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+    } catch (e) {}
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <nav class="nav" aria-label="Primary">
+      <a class="nav-name" href="../../">ahmet-keles<span class="nav-cursor" aria-hidden="true">_</span></a>
+      <div class="nav-links">
+        <a href="../../#projects">Projects</a>
+        <a href="../../writing/">Writing</a>
+        <a href="../../#contact">Contact</a>
+        <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle color theme">
+          <svg class="icon-sun" aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+          <svg class="icon-moon" aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg>
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <main id="main" class="page">
+    <p class="breadcrumb"><a href="../../">Home</a> / <a href="../">Writing</a></p>
+
+    <header class="page-head">
+      <h1>Idempotent Kafka consumers: the claim goes inside the transaction</h1>
+      <p class="page-lede">
+        At-least-once delivery means every consumer will eventually see the same
+        event twice. A ledger of processed event ids handles that. Where you
+        write to the ledger decides whether a retry can lose the event forever.
+      </p>
+      <div class="page-meta">
+        <span><time datetime="2026-09-18">September 18, 2026</time></span>
+        <span>Java · Spring Kafka · PostgreSQL</span>
+      </div>
+    </header>
+
+    <article class="prose">
+      <h2>Duplicates are not a bug, they are the contract</h2>
+      <p>
+        In the <a href="../transactional-outbox-spring-boot/">previous post</a>
+        I described an outbox publisher that is deliberately at-least-once. A
+        send that succeeds before a commit that fails gets re-sent. A send that
+        times out locally but lands at the broker gets re-sent. Kafka itself
+        redelivers on consumer rebalance and on any retry the error handler
+        schedules. So every consumer in the system has to be written on the
+        assumption that it will see any given event more than once, and the
+        effect must happen exactly once anyway.
+      </p>
+
+      <h2>The ledger</h2>
+      <p>
+        Each service has a <code>processed_events</code> table keyed by the
+        envelope's <code>eventId</code>. Before applying an event, the consumer
+        tries to claim it:
+      </p>
+      <pre><code>INSERT INTO processed_events (event_id, event_type, aggregate_id, processed_at)
+VALUES (:eventId, :eventType, :aggregateId, :processedAt)
+ON CONFLICT (event_id) DO NOTHING</code></pre>
+      <p>
+        The insert <em>is</em> the duplicate check. There is no window between
+        looking and writing, because the primary key arbitrates. If the row
+        count comes back 0, a committed delivery already handled this event,
+        and the consumer returns without doing anything. When two transactions
+        race on the same id, PostgreSQL blocks the second insert until the
+        first resolves, so 0 is only ever returned after a competing claim has
+        <em>committed</em>. An aborted competitor lets this insert proceed. No
+        exception is thrown either way, so the surrounding transaction stays
+        usable.
+      </p>
+      <pre><code>@Transactional
+public boolean processReserved(Envelope envelope, InventoryReservedEvent event) {
+    int claimed = ledger.claim(envelope.eventId(), envelope.eventType(),
+                               envelope.aggregateId(), Instant.now());
+    if (claimed == 0) {
+        return false;                 // already applied by an earlier delivery
+    }
+    orderService.markItemReserved(event.orderId(), event.orderItemId());
+    return true;
+}</code></pre>
+
+      <h2>The mistake that looks like defensive programming</h2>
+      <p>
+        The tempting refinement is to commit the ledger write in its own
+        transaction, <code>REQUIRES_NEW</code>, so the marker survives whatever
+        happens next. It reads as extra safety. It is the opposite.
+      </p>
+      <p>
+        Suppose the claim commits on its own, then the mutation throws: an
+        optimistic-lock conflict, a flush error, a constraint. The mutation
+        rolls back. The claim does not. The error handler redelivers the
+        event, the consumer sees the ledger row, returns "already processed",
+        and the effect never happens. The event is lost, permanently, with a
+        log line that says everything is fine.
+      </p>
+      <p>
+        So the claim and the mutation share one transaction. If anything after
+        the claim fails, the claim rolls back with it, and the redelivery can
+        claim the same id again. This also composes with optimistic locking: a
+        consumer that loses a version race rolls back its claim, its mutation,
+        and any outbox row it staged, and the retry re-applies cleanly from
+        the fresh state.
+      </p>
+
+      <h2>Let the domain be defensive too</h2>
+      <p>
+        The ledger is the general guarantee, but a few places get a second
+        guard because the cost of a duplicate is high or because the ledger's
+        window is finite:
+      </p>
+      <ul>
+        <li><strong>Per-item reserved flags</strong> on the order, not a counter. A redelivered <code>INVENTORY_RESERVED</code> for an item that is already reserved cannot advance the order, even when two items share a product.</li>
+        <li><strong>Terminal states latch.</strong> A late reservation cannot confirm a cancelled order; a late failure cannot cancel a confirmed one. The first terminal payment outcome wins.</li>
+        <li><strong>A unique constraint on <code>payments.order_id</code></strong>, and the payment gateway idempotency key is the order id. Even a confirmation re-emitted under a brand new event id, which the ledger would not catch, cannot charge twice.</li>
+      </ul>
+
+      <h2>Classify the failure before choosing the retry</h2>
+      <p>
+        Idempotency makes retries safe. It does not make them useful. Every
+        listener in the system shares one <code>DefaultErrorHandler</code>
+        with exponential backoff (4 attempts, 500 ms doubling to 5 s) and a
+        <code>DeadLetterPublishingRecoverer</code> that publishes exhausted
+        records, unchanged and under their original key, to
+        <code>&lt;topic&gt;.DLT</code>. What matters is which exceptions get
+        which treatment:
+      </p>
+      <pre><code>errorHandler.addNotRetryableExceptions(
+        InvalidEventException.class,          // contract violation: retrying cannot fix it
+        DataIntegrityViolationException.class // a broken record breaks the same constraint every time
+);
+errorHandler.addRetryableExceptions(
+        TransientDataAccessException.class,   // lock conflicts, deadlocks, connection loss
+        DuplicateKeyException.class           // a racing duplicate insert resolves on redelivery
+);</code></pre>
+      <p>And the category that is not an exception at all:</p>
+      <table>
+        <thead><tr><th>Class</th><th>Examples</th><th>Handling</th></tr></thead>
+        <tbody>
+          <tr><td>Business outcome</td><td>insufficient stock, unknown product, declined charge</td><td>Commit, emit a failure <em>event</em>. Never retried, never dead-lettered.</td></tr>
+          <tr><td>Contract violation</td><td>missing event id, envelope/payload order id mismatch</td><td>Straight to the DLT. The partition keeps moving.</td></tr>
+          <tr><td>Transient</td><td>optimistic-lock loss, lock timeout</td><td>Backoff and retry. The rolled-back claim lets the retry apply cleanly.</td></tr>
+          <tr><td>Duplicate</td><td>redelivered event id</td><td>Claim returns 0. Consumed successfully.</td></tr>
+        </tbody>
+      </table>
+      <p>
+        The first row is the one people get wrong. "Not enough stock" is a
+        perfectly valid answer to a reservation request. If the consumer throws
+        on it, the error handler retries a hopeless operation four times and
+        then dead-letters a good message. Model it as
+        <code>INVENTORY_RESERVATION_FAILED</code> instead, commit it, and let
+        the order service decide what to do.
+      </p>
+
+      <h2>The ledger has a retention window, and it bounds the guarantee</h2>
+      <p>
+        Ledger rows cannot live forever, so a retention job deletes them after
+        a configured age. Deleting a row re-enables its event id. That means
+        the ledger age <strong>must exceed</strong> the source topic's
+        retention plus the worst-case consumer lag plus any operational replay
+        or dead-letter redrive window. My first default was 7 days, which is
+        shorter than a plausible redrive. It is now 30 days, the property is
+        documented with the constraint, and a non-positive value refuses to
+        boot. Past the window, the domain guards above still prevent double
+        stock mutation and double charging, but the general promise is gone.
+      </p>
+
+      <h2>One more thing: the offset reset</h2>
+      <p>
+        None of this helps if the consumer never sees the event. Kafka's
+        default <code>auto-offset-reset</code> is <code>latest</code>, so a
+        brand new consumer group starts from the end of the topic and silently
+        skips everything published before its first partition assignment. I
+        relied on that default in one service and only found it because the
+        end-to-end suite had an environment override masking it. All three
+        consumers now set <code>earliest</code>, and a config test pins it.
+        Test your real defaults, not the ones your test harness sets for you.
+      </p>
+
+      <div class="callout">
+        <p>Code: <a href="https://github.com/ahmet-keles/event-driven-commerce/blob/main/services/order-service/src/main/java/com/ahmetkeles/orderservice/messaging/InventoryEventProcessor.java">InventoryEventProcessor.java</a>, <a href="https://github.com/ahmet-keles/event-driven-commerce/blob/main/services/order-service/src/main/java/com/ahmetkeles/orderservice/messaging/ProcessedEventRepository.java">ProcessedEventRepository.java</a>, and <a href="https://github.com/ahmet-keles/event-driven-commerce/blob/main/services/order-service/src/main/java/com/ahmetkeles/orderservice/config/KafkaErrorHandlingConfig.java">KafkaErrorHandlingConfig.java</a>. The full system is in the <a href="../../projects/event-driven-commerce/">case study</a>.</p>
+      </div>
+    </article>
+
+    <nav class="page-nav" aria-label="Page navigation">
+      <a class="link-arrow" href="../">All writing</a>
+      <a class="link-arrow" href="../transactional-outbox-spring-boot/">Previous: the transactional outbox</a>
+    </nav>
+  </main>
+
+  <footer class="site-footer">
+    <p>© 2026 Ahmet Keles · Built with plain HTML &amp; CSS · <a href="https://github.com/ahmet-keles/ahmet-keles.github.io">Source</a></p>
+  </footer>
+
+  <script src="../../assets/site.js" defer></script>
+</body>
+</html>

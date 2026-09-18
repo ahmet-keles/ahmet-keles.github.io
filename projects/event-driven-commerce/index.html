@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Event-Driven Commerce Platform — case study · Ahmet Keles</title>
+  <meta name="description" content="How I built a three-service order → inventory → payment saga on Kafka with transactional outboxes, idempotent consumers, and compensation — the decisions, the bugs I found along the way, and what I would change.">
+  <link rel="canonical" href="https://ahmet-keles.github.io/projects/event-driven-commerce/">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Event-Driven Commerce Platform — case study">
+  <meta property="og:description" content="A three-service Kafka saga with outboxes, idempotent consumers, and compensation: decisions, tradeoffs, what broke, and what I would change.">
+  <meta property="og:url" content="https://ahmet-keles.github.io/projects/event-driven-commerce/">
+  <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+  <link rel="alternate" type="application/rss+xml" title="Ahmet Keles — Writing" href="../../feed.xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <script>
+    try {
+      var t = localStorage.getItem("theme");
+      if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+    } catch (e) {}
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <nav class="nav" aria-label="Primary">
+      <a class="nav-name" href="../../">ahmet-keles<span class="nav-cursor" aria-hidden="true">_</span></a>
+      <div class="nav-links">
+        <a href="../../#projects">Projects</a>
+        <a href="../../writing/">Writing</a>
+        <a href="../../#contact">Contact</a>
+        <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle color theme">
+          <svg class="icon-sun" aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+          <svg class="icon-moon" aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg>
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <main id="main" class="page">
+    <p class="breadcrumb"><a href="../../">Home</a> / <a href="../../#projects">Projects</a> / Case study</p>
+
+    <header class="page-head">
+      <p class="section-eyebrow">Case study</p>
+      <h1>Event-Driven Commerce Platform</h1>
+      <p class="page-lede">
+        Three Spring Boot services that never call each other and never share a
+        database, coordinating an order → inventory → payment saga over Kafka.
+        This is what I decided, what I got wrong the first time, and what I would
+        change.
+      </p>
+      <div class="page-meta">
+        <span>Java 21 · Spring Boot · Kafka · PostgreSQL · Docker · Testcontainers</span>
+        <span>v1.0.0 · August 2026</span>
+        <span><a href="https://github.com/ahmet-keles/event-driven-commerce">Source on GitHub</a></span>
+      </div>
+    </header>
+
+    <div class="facts" aria-label="Key figures">
+      <div class="fact"><div class="fact-value">3</div><div class="fact-label">services, 3 databases, 0 sync calls</div></div>
+      <div class="fact"><div class="fact-value">345</div><div class="fact-label">automated tests, all against real Postgres and Kafka</div></div>
+      <div class="fact"><div class="fact-value">8</div><div class="fact-label">event types across 3 topics</div></div>
+      <div class="fact"><div class="fact-value">≤ 8 s</div><div class="fact-label">worst-case outbox lock hold, independent of batch size</div></div>
+    </div>
+
+    <nav class="toc" aria-label="On this page">
+      <p>On this page</p>
+      <ol>
+        <li><a href="#problem">The problem I set myself</a></li>
+        <li><a href="#architecture">Architecture</a></li>
+        <li><a href="#saga">The saga</a></li>
+        <li><a href="#decisions">Decisions and tradeoffs</a></li>
+        <li><a href="#broke">What broke along the way</a></li>
+        <li><a href="#testing">How it is tested</a></li>
+        <li><a href="#differently">What I would do differently</a></li>
+        <li><a href="#status">Status and next steps</a></li>
+      </ol>
+    </nav>
+
+    <article class="prose">
+
+      <h2 id="problem">The problem I set myself</h2>
+      <p>
+        I wanted to build the part of a commerce backend that is genuinely hard:
+        not the CRUD, but the coordination. Placing an order touches three
+        different concerns, orders, stock, and money, and each one has its own
+        rules about what can go wrong. The naive design is one service with one
+        database and a big transaction. That works right up until you need the
+        pieces to scale, fail, or deploy independently.
+      </p>
+      <p>So I set three constraints before writing any code:</p>
+      <ul>
+        <li><strong>No synchronous calls between services.</strong> Every hop goes through Kafka. If a service is down, work queues; it does not fail.</li>
+        <li><strong>No shared database.</strong> Each service owns its schema. The only integration point is the event contract.</li>
+        <li><strong>Every guarantee has to be tested against the real thing.</strong> No mocked Kafka, no in-memory database. If the claim is "a duplicate delivery never double-charges", there is a test that delivers a duplicate to a real broker and checks the payment table.</li>
+      </ul>
+      <p>
+        The result is a system where at-least-once delivery, retries, redelivery,
+        and concurrent writers are all assumed to happen, and the correctness
+        comes from making every effect idempotent rather than hoping nothing
+        goes wrong.
+      </p>
+
+      <h2 id="architecture">Architecture</h2>
+      <figure>
+        <svg class="diagram" viewBox="0 0 760 330" role="img" aria-labelledby="diag-title">
+          <title id="diag-title">Three services connected only through Kafka topics, each with its own PostgreSQL database and outbox</title>
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"></path>
+            </marker>
+          </defs>
+
+          <!-- client -->
+          <rect class="box" x="20" y="130" width="90" height="44" rx="22"></rect>
+          <text class="title" x="65" y="157" text-anchor="middle">client</text>
+
+          <!-- order-service -->
+          <rect class="box" x="160" y="90" width="170" height="124" rx="10"></rect>
+          <text class="title" x="245" y="114" text-anchor="middle">order-service</text>
+          <text class="small" x="245" y="132" text-anchor="middle">REST /api/orders</text>
+          <rect class="db" x="178" y="146" width="134" height="50" rx="6"></rect>
+          <text class="small" x="245" y="166" text-anchor="middle">orders · outbox</text>
+          <text class="small" x="245" y="182" text-anchor="middle">processed_events</text>
+
+          <!-- inventory-service -->
+          <rect class="box" x="570" y="20" width="170" height="110" rx="10"></rect>
+          <text class="title" x="655" y="44" text-anchor="middle">inventory-service</text>
+          <text class="small" x="655" y="62" text-anchor="middle">Kafka only</text>
+          <rect class="db" x="588" y="72" width="134" height="46" rx="6"></rect>
+          <text class="small" x="655" y="91" text-anchor="middle">stock · reservations</text>
+          <text class="small" x="655" y="106" text-anchor="middle">outbox · ledger</text>
+
+          <!-- payment-service -->
+          <rect class="box" x="570" y="190" width="170" height="110" rx="10"></rect>
+          <text class="title" x="655" y="214" text-anchor="middle">payment-service</text>
+          <text class="small" x="655" y="232" text-anchor="middle">simulated gateway</text>
+          <rect class="db" x="588" y="242" width="134" height="46" rx="6"></rect>
+          <text class="small" x="655" y="261" text-anchor="middle">payments · outbox</text>
+          <text class="small" x="655" y="276" text-anchor="middle">ledger</text>
+
+          <!-- topics -->
+          <rect class="topic" x="395" y="132" width="120" height="40" rx="6"></rect>
+          <text class="label" x="455" y="156" text-anchor="middle">order.events</text>
+          <rect class="topic" x="395" y="40" width="120" height="40" rx="6"></rect>
+          <text class="label" x="455" y="64" text-anchor="middle">inventory.events</text>
+          <rect class="topic" x="395" y="226" width="120" height="40" rx="6"></rect>
+          <text class="label" x="455" y="250" text-anchor="middle">payment.events</text>
+
+          <!-- edges -->
+          <path class="edge" d="M110,152 L160,152"></path>
+          <path class="edge edge-accent" d="M330,152 L395,152"></path>
+          <path class="edge" d="M515,148 C545,148 545,75 570,75"></path>
+          <path class="edge" d="M515,156 C545,156 545,245 570,245"></path>
+          <path class="edge" d="M570,95 C540,95 540,60 515,60"></path>
+          <path class="edge" d="M395,60 C360,60 360,110 330,110"></path>
+          <path class="edge" d="M570,270 C540,270 540,246 515,246"></path>
+          <path class="edge" d="M395,246 C360,246 360,196 330,196"></path>
+
+          <text class="small" x="455" y="316" text-anchor="middle">every arrow into a topic is an outbox publisher; every arrow out is an idempotent consumer</text>
+        </svg>
+        <figcaption>One PostgreSQL per service. Kafka is the only thing services share. Message key is always the order id, so one order's events stay in order on one partition.</figcaption>
+      </figure>
+      <p>
+        Every hop uses the same mechanism. A business transaction writes its
+        domain change <em>and</em> an outbox row in one database transaction. A
+        scheduled publisher later ships unpublished rows to Kafka. On the other
+        side, every consumer records the event id in a <code>processed_events</code>
+        ledger inside the same transaction as its mutation. That pairing, outbox
+        on the way out and ledger on the way in, is what turns at-least-once
+        delivery into effectively-once effects.
+      </p>
+
+      <h2 id="saga">The saga</h2>
+      <pre><code>create order ──▶ add items ──▶ submit
+                                 │
+              ORDER_ITEM_ADDED   ▼            per item
+order-service ────────────────▶ inventory-service ──▶ INVENTORY_RESERVED
+                                                  └─▶ INVENTORY_RESERVATION_FAILED
+submitted AND all items reserved ⇒ CONFIRMED ── ORDER_CONFIRMED ──▶ payment-service
+any reservation failure          ⇒ CANCELLED                            │
+                                                    PAYMENT_COMPLETED ◀─┴─▶ PAYMENT_FAILED
+                                                    (order settles)          (order CANCELLED,
+                                                                             stock released)</code></pre>
+      <p>
+        The client assembles an order item by item, then explicitly submits it.
+        Each item added produces an <code>ORDER_ITEM_ADDED</code> event that
+        inventory-service reserves against. The order confirms only when it has
+        been submitted <strong>and</strong> every item is reserved, whichever
+        happens last. Confirmation emits <code>ORDER_CONFIRMED</code>, which
+        payment-service charges. A declined charge cancels the order, and the
+        cancellation event makes inventory-service return every reservation it
+        still holds. Every cancellation compensates, exactly once.
+      </p>
+
+      <h2 id="decisions">Decisions and tradeoffs</h2>
+
+      <h3>Transactional outbox instead of publishing from the business transaction</h3>
+      <p>
+        Calling <code>kafkaTemplate.send()</code> inside a service method is the
+        obvious approach and it is wrong in both directions: a commit can succeed
+        after the send fails (state with no event), or the send can succeed and
+        the commit roll back (event for state that never existed). The outbox
+        makes the event part of the same atomic write. The cost is a polling
+        publisher and a one-second delay. I also considered change data capture
+        with Debezium, which avoids polling, but it adds a connector to operate
+        and I wanted the guarantee to be visible in the code I wrote.
+      </p>
+
+      <h3>The publisher has to survive running twice</h3>
+      <p>
+        The first version claimed rows with a plain <code>SELECT</code>. Two
+        replicas would have published the same rows. The fix is
+        <code>SELECT … FOR UPDATE SKIP LOCKED</code> inside one short
+        transaction, so concurrent replicas partition the backlog instead of
+        racing for it. A second guard checks, inside the claim transaction,
+        that this replica holds the aggregate's <em>oldest</em> unpublished
+        event. Without that, two replicas could publish one order's
+        <code>INVENTORY_RESERVED</code> and <code>INVENTORY_RESERVATION_FAILED</code>
+        in the wrong order and flip its terminal state. The guard costs one
+        indexed query per poll and can only defer, never publish early.
+      </p>
+
+      <h3>Explicit submission</h3>
+      <p>
+        Originally an order confirmed as soon as its items were reserved. That
+        meant a fast reservation could confirm an order the client was still
+        adding items to. Adding a <code>submit</code> step makes "assembly is
+        finished" a fact the client states rather than something the system
+        infers from timing. It is one more API call, and it removed an entire
+        class of race.
+      </p>
+
+      <h3>Optimistic locking, with Kafka owning the retry</h3>
+      <p>
+        The order aggregate and inventory rows carry a JPA <code>@Version</code>.
+        Concurrent writers, an <code>addItem</code> racing a reservation, a
+        reservation racing a cancellation, serialize into exactly one committed
+        ordering. I deliberately put no retry loops in the service layer. A
+        losing transaction rolls back, including its ledger claim and its outbox
+        row, and the Kafka error handler redelivers. REST callers get a
+        <code>409 concurrent_modification</code> whose contract is "retry".
+        One retry mechanism instead of two.
+      </p>
+
+      <h3>Classify failures before deciding how to handle them</h3>
+      <table>
+        <thead><tr><th>Class</th><th>Example</th><th>Handling</th></tr></thead>
+        <tbody>
+          <tr><td>Business outcome</td><td>insufficient stock, declined charge</td><td>Commit and emit a failure <em>event</em>. Never a retry, never a dead letter.</td></tr>
+          <tr><td>Contract violation</td><td>missing event id, envelope/payload mismatch</td><td>Straight to <code>&lt;topic&gt;.DLT</code>. Retrying cannot fix a malformed record.</td></tr>
+          <tr><td>Transient</td><td>lock conflict, connection loss</td><td>Exponential backoff, 4 attempts, 500 ms → 5 s, then DLT.</td></tr>
+          <tr><td>Duplicate</td><td>redelivered event id</td><td>Dropped by the ledger. Consumed successfully.</td></tr>
+        </tbody>
+      </table>
+      <p>
+        The important line is the first one. "Not enough stock" is not an error.
+        Treating it as one would retry a hopeless operation four times and then
+        dead-letter a perfectly good message.
+      </p>
+
+      <h3>The ledger claim lives inside the mutation's transaction</h3>
+      <p>
+        It is tempting to record "I processed this event" in its own
+        <code>REQUIRES_NEW</code> transaction so it survives whatever happens
+        next. That is exactly backwards: if the mutation then fails, the marker
+        is committed and the event is lost forever. The claim is an
+        <code>INSERT … ON CONFLICT DO NOTHING</code> in the same transaction as
+        the work, so a rollback releases it for the redelivery to take.
+      </p>
+
+      <h3>Charge at most once, three layers deep</h3>
+      <p>
+        Payment gets three independent guards because it is the one place where
+        a duplicate costs real money: the ledger dedups a redelivered event id,
+        a unique constraint on <code>payments.order_id</code> absorbs a
+        confirmation re-emitted under a fresh id, and the gateway idempotency
+        key is the order id itself, so a crash between charge and commit replays
+        into the original outcome. The gateway is simulated and deterministic,
+        amounts under 1000.00 approve, at or above decline, which is enough to
+        exercise both branches end to end.
+      </p>
+
+      <h2 id="broke">What broke along the way</h2>
+      <p>
+        These are real bugs from the commit history, not hypotheticals. Each
+        one now has a test that would catch it again.
+      </p>
+      <ul>
+        <li>
+          <p><strong>The first reservation confirmed the whole order.</strong>
+          The consumer called <code>confirmOrder()</code> unconditionally on the
+          first <code>INVENTORY_RESERVED</code>, so a two-item order confirmed
+          before its second item was even checked. Fix: track a
+          <code>reserved</code> flag per item and derive confirmation from the
+          items. A flag rather than a counter, so a redelivered event for an
+          already-reserved item cannot advance the order.</p>
+        </li>
+        <li>
+          <p><strong>Cancelling an order did not give the stock back.</strong>
+          The happy path worked and the compensation was simply missing. Fixing
+          it needed a durable reservation ledger in inventory-service keyed by
+          order item, and a per-order state row that both reserve and release
+          lock first, so a late <code>ORDER_ITEM_ADDED</code> arriving after the
+          cancellation reserves nothing instead of leaking stock.</p>
+        </li>
+        <li>
+          <p><strong>The outbox publisher could hold locks for 1000 seconds.</strong>
+          After making it replica-safe, the claim transaction ran until every
+          send resolved: batch size × send timeout. A degraded broker would
+          have pinned row locks and a pooled connection for the duration. The
+          hold is now capped three ways, a poll deadline, a local send timeout
+          that aborts the rest of the poll, and a lowered
+          <code>max.block.ms</code>, so the worst case is 8 seconds regardless
+          of batch size.</p>
+        </li>
+        <li>
+          <p><strong>A fresh consumer group silently skipped events.</strong>
+          order-service relied on Kafka's default
+          <code>auto-offset-reset=latest</code>. A new consumer group would
+          ignore inventory and payment events published before its first
+          assignment, leaving orders unconfirmed. The end-to-end suite had an
+          environment override that masked this. Both were fixed and a
+          config test now pins <code>earliest</code>.</p>
+        </li>
+        <li>
+          <p><strong>The dedup window was shorter than the replay window.</strong>
+          The ledger's retention default was 7 days. Deleting a ledger row
+          re-enables its event id, so the retention has to exceed Kafka's
+          topic retention plus any dead-letter redrive window. It is now 30
+          days, and the configuration refuses to boot on a non-positive age.</p>
+        </li>
+        <li>
+          <p><strong>The e2e suite failed intermittently on a real race.</strong>
+          <code>POST /items</code> races the Kafka consumer's writes to the same
+          order row. The suite was hitting the genuine 409 the service now
+          returns. The fix was not to loosen the test but to make the test
+          client honor the 409's contract with a bounded retry, while never
+          retrying the terminal <code>order_not_modifiable</code>.</p>
+        </li>
+      </ul>
+
+      <h2 id="testing">How it is tested</h2>
+      <table>
+        <thead><tr><th>Suite</th><th>Tests</th><th>What it runs against</th></thead>
+        <tbody>
+          <tr><td>order-service</td><td>189</td><td>Testcontainers PostgreSQL and Kafka</td></tr>
+          <tr><td>inventory-service</td><td>83</td><td>Testcontainers PostgreSQL and Kafka</td></tr>
+          <tr><td>payment-service</td><td>57</td><td>Testcontainers PostgreSQL and Kafka</td></tr>
+          <tr><td>end-to-end</td><td>16</td><td>All three boot jars as containers, real Kafka, three PostgreSQL instances</td></tr>
+        </tbody>
+      </table>
+      <p>
+        The tests I am most pleased with are the concurrency proofs. They use
+        latches to force a specific interleaving, for example a cancellation
+        that stages <code>CANCELLED</code> plus its outbox row and parks before
+        commit, while a reservation commits first and confirms the order. The
+        released cancellation must then fail its version check and leave zero
+        <code>ORDER_CANCELLED</code> rows behind. A surviving row would announce
+        a cancellation that never happened and make inventory release stock for
+        a confirmed order.
+      </p>
+      <p>
+        The end-to-end suite covers the full saga, compensation, duplicate
+        delivery, dead-lettering in both directions, both payment outcomes, and
+        the wire contracts. All four suites run in GitHub Actions on every push
+        and pull request.
+      </p>
+
+      <h2 id="differently">What I would do differently</h2>
+      <ul>
+        <li><strong>Add the submit step on day one.</strong> Inferring "assembly finished" from event timing was the root of two separate bugs. State that the client knows should be stated by the client.</li>
+        <li><strong>Write the compensation path with the happy path.</strong> Reservation without release shipped and passed its tests. A saga is not done until every forward step has its undo.</li>
+        <li><strong>Test every consumer against a fresh consumer group.</strong> The offset-reset bug survived because the test environment configured what the application did not. Tests should run the real defaults.</li>
+        <li><strong>Use a schema registry or at least versioned contracts.</strong> Payloads are JSON strings inside a JSON envelope with the field names checked by tests. That works for three services I control. It would not survive a fourth team.</li>
+        <li><strong>Add metrics before adding services.</strong> Outbox backlog depth, consumer lag, and DLT counts are the three numbers an operator would need, and today they only exist in logs.</li>
+      </ul>
+
+      <h2 id="status">Status and next steps</h2>
+      <p>
+        v1.0.0 is complete: the saga runs end to end, and every guarantee above
+        is pinned by a test. Local deployment is hybrid, Docker Compose runs
+        Kafka, the three databases, and payment-service, while the other two
+        services run on the host. Natural next steps are a notification
+        service, metrics and tracing beyond Actuator health, and a cloud
+        deployment.
+      </p>
+      <div class="callout">
+        <p><strong>Read the code.</strong> The repository's <a href="https://github.com/ahmet-keles/event-driven-commerce/blob/main/docs/ARCHITECTURE.md">ARCHITECTURE.md</a> and <a href="https://github.com/ahmet-keles/event-driven-commerce/blob/main/docs/EVENT_FLOW.md">EVENT_FLOW.md</a> document every contract and mechanism in more detail than this page. Two of the mechanisms have their own write-ups: <a href="../../writing/transactional-outbox-spring-boot/">the transactional outbox</a> and <a href="../../writing/idempotent-kafka-consumers/">idempotent consumers</a>.</p>
+      </div>
+    </article>
+
+    <nav class="page-nav" aria-label="Page navigation">
+      <a class="link-arrow" href="https://github.com/ahmet-keles/event-driven-commerce">Source on GitHub</a>
+      <a class="link-arrow" href="https://github.com/ahmet-keles/event-driven-commerce/releases/tag/v1.0.0">v1.0.0 release</a>
+      <a class="link-arrow" href="../../#projects">All projects</a>
+    </nav>
+  </main>
+
+  <footer class="site-footer">
+    <p>© 2026 Ahmet Keles · Built with plain HTML &amp; CSS · <a href="https://github.com/ahmet-keles/ahmet-keles.github.io">Source</a></p>
+  </footer>
+
+  <script src="../../assets/site.js" defer></script>
+</body>
+</html>

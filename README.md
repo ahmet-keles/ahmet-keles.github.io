@@ -10,11 +10,31 @@ Plain static HTML, CSS, and a small amount of vanilla JavaScript (the
 light/dark theme toggle). No frameworks, no build step, no analytics.
 
 ```
-index.html          the whole site (single page)
-assets/styles.css   design system: tokens, light/dark themes, layout
-assets/site.js      theme toggle (persists to localStorage)
-assets/favicon.svg  favicon
+index.html                        homepage
+projects/<slug>/index.html        project case studies
+writing/index.html                writing index
+writing/<slug>/index.html         one directory per post
+feed.xml                          RSS feed (hand-maintained; add an <item> per post)
+resume/index.html                 printable resume; source of the PDF below
+assets/Ahmet-Keles-Resume.pdf     resume PDF linked from the homepage
+kmap-looper/                      K-Map Looper tool (single file, no dependencies)
+assets/styles.css                 design system: tokens, light/dark themes, layout, article pages
+assets/site.js                    theme toggle (persists to localStorage)
+assets/favicon.svg                favicon
 ```
+
+## Adding a post
+
+1. Copy an existing `writing/<slug>/index.html` to a new slug and edit it.
+2. Add it to the list in `writing/index.html` and the Writing section of
+   `index.html`.
+3. Add an `<item>` to `feed.xml` and bump `lastBuildDate`.
+
+## Regenerating the resume PDF
+
+`resume/index.html` is the source. Open it in a browser and print to PDF
+(Letter, background graphics on) to `assets/Ahmet-Keles-Resume.pdf`, or run
+headless Chromium against a local server. No build step is required.
 
 ## Local preview
 
@@ -36,11 +56,3 @@ configuration are needed). Merging to `main` deploys.
 
 If Pages settings were ever changed: Settings → Pages → Source should be
 "Deploy from a branch", branch `main`, folder `/ (root)`.
-
-## Adding a resume
-
-No resume button is rendered yet because no PDF is committed. To add one:
-
-1. Add your PDF at `assets/Ahmet-Keles-Resume.pdf`.
-2. In `index.html`, find the `RESUME:` comment in the Contact section and
-   insert the anchor tag shown in that comment.

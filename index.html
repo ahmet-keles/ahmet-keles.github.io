@@ -12,6 +12,7 @@
   <meta property="og:url" content="https://ahmet-keles.github.io/">
   <meta name="twitter:card" content="summary">
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="alternate" type="application/rss+xml" title="Ahmet Keles — Writing" href="feed.xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
@@ -34,6 +35,7 @@
       <a class="nav-name" href="#top">ahmet-keles<span class="nav-cursor" aria-hidden="true">_</span></a>
       <div class="nav-links">
         <a href="#projects">Projects</a>
+        <a href="#writing">Writing</a>
         <a href="#experience">Experience</a>
         <a href="#skills">Skills</a>
         <a href="#contact">Contact</a>
@@ -62,6 +64,7 @@
       </p>
       <div class="hero-actions">
         <a class="btn btn-primary" href="#projects">View Projects</a>
+        <a class="btn btn-secondary" href="assets/Ahmet-Keles-Resume.pdf">Resume</a>
         <a class="btn btn-secondary" href="https://github.com/ahmet-keles" rel="me">GitHub</a>
         <a class="btn btn-secondary" href="https://www.linkedin.com/in/ahmet-keles-91b33b228/" rel="me">LinkedIn</a>
       </div>
@@ -113,6 +116,7 @@
           <li>345 automated tests</li>
         </ul>
         <div class="project-links">
+          <a class="link-arrow" href="projects/event-driven-commerce/">Case study</a>
           <a class="link-arrow" href="https://github.com/ahmet-keles/event-driven-commerce">GitHub</a>
           <a class="link-arrow" href="https://github.com/ahmet-keles/event-driven-commerce/releases/tag/v1.0.0">v1.0.0 release</a>
         </div>
@@ -183,9 +187,42 @@
       </div>
     </section>
 
+    <!-- ============ WRITING ============ -->
+    <section class="section" id="writing" aria-labelledby="writing-heading">
+      <p class="section-eyebrow">03 · Writing</p>
+      <h2 id="writing-heading">Writing</h2>
+      <ul class="post-list">
+        <li>
+          <span class="post-date"><time datetime="2026-09-18">Sep 18, 2026</time></span>
+          <div>
+            <a class="post-title" href="writing/transactional-outbox-spring-boot/">A transactional outbox that survives two replicas</a>
+            <p class="post-summary">SKIP LOCKED claims, a bounded lock hold, and a cross-replica ordering guard: what it took to make an outbox publisher safe to run twice.</p>
+          </div>
+        </li>
+        <li>
+          <span class="post-date"><time datetime="2026-09-18">Sep 18, 2026</time></span>
+          <div>
+            <a class="post-title" href="writing/idempotent-kafka-consumers/">Idempotent Kafka consumers: the claim goes inside the transaction</a>
+            <p class="post-summary">Where you write the processed-events ledger decides whether a retry can lose the event forever.</p>
+          </div>
+        </li>
+        <li>
+          <span class="post-date"><time datetime="2026-09-18">Sep 18, 2026</time></span>
+          <div>
+            <a class="post-title" href="writing/karnaugh-map-loops-canvas/">Drawing wrap-around Karnaugh map loops on a canvas</a>
+            <p class="post-summary">Gray code makes the map a torus. Open edges make the wrap-around loops draw themselves.</p>
+          </div>
+        </li>
+      </ul>
+      <div class="project-links" style="margin-top:18px">
+        <a class="link-arrow" href="writing/">All writing</a>
+        <a class="link-arrow" href="feed.xml">RSS</a>
+      </div>
+    </section>
+
     <!-- ============ EXPERIENCE ============ -->
     <section class="section" id="experience" aria-labelledby="experience-heading">
-      <p class="section-eyebrow">03 · Experience</p>
+      <p class="section-eyebrow">04 · Experience</p>
       <h2 id="experience-heading">Experience</h2>
 
       <div class="entry">
@@ -210,7 +247,7 @@
 
     <!-- ============ SKILLS ============ -->
     <section class="section" id="skills" aria-labelledby="skills-heading">
-      <p class="section-eyebrow">04 · Skills</p>
+      <p class="section-eyebrow">05 · Skills</p>
       <h2 id="skills-heading">Skills</h2>
       <div class="skills-grid">
         <div class="skill-group">
@@ -242,7 +279,7 @@
 
     <!-- ============ EDUCATION ============ -->
     <section class="section" id="education" aria-labelledby="education-heading">
-      <p class="section-eyebrow">05 · Education</p>
+      <p class="section-eyebrow">06 · Education</p>
       <h2 id="education-heading">Education</h2>
       <div class="entry">
         <div class="entry-meta">Expected Fall 2027</div>
@@ -254,7 +291,7 @@
 
     <!-- ============ CERTIFICATIONS ============ -->
     <section class="section" id="certifications" aria-labelledby="certifications-heading">
-      <p class="section-eyebrow">06 · Certifications</p>
+      <p class="section-eyebrow">07 · Certifications</p>
       <h2 id="certifications-heading">Certifications</h2>
       <div class="entry">
         <div class="entry-meta">August 2026</div>
@@ -267,7 +304,7 @@
 
     <!-- ============ CONTACT ============ -->
     <section class="section section-contact" id="contact" aria-labelledby="contact-heading">
-      <p class="section-eyebrow">07 · Contact</p>
+      <p class="section-eyebrow">08 · Contact</p>
       <h2 id="contact-heading">Get in touch</h2>
       <p class="contact-lede">
         Open to Summer 2027 software engineering internships — backend, distributed
@@ -277,13 +314,7 @@
         <a class="btn btn-primary" href="mailto:akeles655@gmail.com">akeles655@gmail.com</a>
         <a class="btn btn-secondary" href="https://github.com/ahmet-keles" rel="me">GitHub</a>
         <a class="btn btn-secondary" href="https://www.linkedin.com/in/ahmet-keles-91b33b228/" rel="me">LinkedIn</a>
-        <!--
-          RESUME: no PDF exists in this repository yet, so no Resume button is
-          rendered. To add one:
-            1. Add the file at assets/Ahmet-Keles-Resume.pdf
-            2. Insert here:
-               <a class="btn btn-secondary" href="assets/Ahmet-Keles-Resume.pdf">Resume</a>
-        -->
+        <a class="btn btn-secondary" href="assets/Ahmet-Keles-Resume.pdf">Resume</a>
       </div>
     </section>
   </main>

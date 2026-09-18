@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Writing · Ahmet Keles</title>
+  <meta name="description" content="Notes on backend and distributed systems from things I have built: outboxes, idempotent consumers, sagas, and the occasional small tool.">
+  <link rel="canonical" href="https://ahmet-keles.github.io/writing/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Writing · Ahmet Keles">
+  <meta property="og:description" content="Notes on backend and distributed systems from things I have built.">
+  <meta property="og:url" content="https://ahmet-keles.github.io/writing/">
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <link rel="alternate" type="application/rss+xml" title="Ahmet Keles — Writing" href="../feed.xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="../assets/styles.css">
+  <script>
+    try {
+      var t = localStorage.getItem("theme");
+      if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+    } catch (e) {}
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <nav class="nav" aria-label="Primary">
+      <a class="nav-name" href="../">ahmet-keles<span class="nav-cursor" aria-hidden="true">_</span></a>
+      <div class="nav-links">
+        <a href="../#projects">Projects</a>
+        <a href="./">Writing</a>
+        <a href="../#contact">Contact</a>
+        <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle color theme">
+          <svg class="icon-sun" aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+          <svg class="icon-moon" aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg>
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <main id="main" class="page">
+    <p class="breadcrumb"><a href="../">Home</a> / Writing</p>
+
+    <header class="page-head">
+      <h1>Writing</h1>
+      <p class="page-lede">
+        Notes from things I have built: mostly backend and distributed systems,
+        occasionally a small tool. Each post comes from code you can read.
+      </p>
+      <div class="page-meta">
+        <span><a href="../feed.xml">RSS feed</a></span>
+        <span><a href="../projects/event-driven-commerce/">Case study: Event-Driven Commerce Platform</a></span>
+      </div>
+    </header>
+
+    <ul class="post-list">
+      <li>
+        <span class="post-date"><time datetime="2026-09-18">Sep 18, 2026</time></span>
+        <div>
+          <a class="post-title" href="transactional-outbox-spring-boot/">A transactional outbox that survives two replicas</a>
+          <p class="post-summary">Publishing from inside the transaction is wrong in both directions. The outbox fixes that, but the first one I wrote broke with two replicas, then held locks for 1000 seconds. What it took to make it safe.</p>
+        </div>
+      </li>
+      <li>
+        <span class="post-date"><time datetime="2026-09-18">Sep 18, 2026</time></span>
+        <div>
+          <a class="post-title" href="idempotent-kafka-consumers/">Idempotent Kafka consumers: the claim goes inside the transaction</a>
+          <p class="post-summary">A processed-events ledger handles duplicates. Where you write to it decides whether a retry can lose the event forever. Plus how to classify failures so retries and dead letters do the right thing.</p>
+        </div>
+      </li>
+      <li>
+        <span class="post-date"><time datetime="2026-09-18">Sep 18, 2026</time></span>
+        <div>
+          <a class="post-title" href="karnaugh-map-loops-canvas/">Drawing wrap-around Karnaugh map loops on a canvas</a>
+          <p class="post-summary">A K-map group can wrap across either edge or both. Drawing that without special-casing every shape came down to one observation about Gray code and open edges.</p>
+        </div>
+      </li>
+    </ul>
+  </main>
+
+  <footer class="site-footer">
+    <p>© 2026 Ahmet Keles · Built with plain HTML &amp; CSS · <a href="https://github.com/ahmet-keles/ahmet-keles.github.io">Source</a></p>
+  </footer>
+
+  <script src="../assets/site.js" defer></script>
+</body>
+</html>

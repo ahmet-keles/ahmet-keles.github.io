@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Drawing wrap-around Karnaugh map loops on a canvas · Ahmet Keles</title>
+  <meta name="description" content="A Karnaugh map group can wrap from the top row to the bottom or the left column to the right. Drawing that on a canvas without special-casing every shape came down to one observation about Gray code and open edges.">
+  <link rel="canonical" href="https://ahmet-keles.github.io/writing/karnaugh-map-loops-canvas/">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Drawing wrap-around Karnaugh map loops on a canvas">
+  <meta property="og:description" content="How K-Map Looper turns a set of cells into loop pieces, handles wrap-around with open edges, and why it refuses to solve the map for you.">
+  <meta property="og:url" content="https://ahmet-keles.github.io/writing/karnaugh-map-loops-canvas/">
+  <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+  <link rel="alternate" type="application/rss+xml" title="Ahmet Keles — Writing" href="../../feed.xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <script>
+    try {
+      var t = localStorage.getItem("theme");
+      if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+    } catch (e) {}
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <nav class="nav" aria-label="Primary">
+      <a class="nav-name" href="../../">ahmet-keles<span class="nav-cursor" aria-hidden="true">_</span></a>
+      <div class="nav-links">
+        <a href="../../#projects">Projects</a>
+        <a href="../../writing/">Writing</a>
+        <a href="../../#contact">Contact</a>
+        <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle color theme">
+          <svg class="icon-sun" aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+          <svg class="icon-moon" aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg>
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <main id="main" class="page">
+    <p class="breadcrumb"><a href="../../">Home</a> / <a href="../">Writing</a></p>
+
+    <header class="page-head">
+      <h1>Drawing wrap-around Karnaugh map loops on a canvas</h1>
+      <p class="page-lede">
+        A Karnaugh map group can wrap from the top row to the bottom, or the
+        left column to the right, or both at once. Drawing that cleanly without
+        special-casing every shape came down to one observation.
+      </p>
+      <div class="page-meta">
+        <span><time datetime="2026-09-18">September 18, 2026</time></span>
+        <span>JavaScript · Canvas</span>
+        <span><a href="../../kmap-looper/">Try the tool</a></span>
+      </div>
+    </header>
+
+    <article class="prose">
+      <h2>Why I built it</h2>
+      <p>
+        Digital logic homework asks you to simplify Boolean functions with a
+        Karnaugh map: fill a grid with the function's outputs, then circle
+        groups of adjacent 1s whose sizes are powers of two. Drawing those
+        circles by hand and photographing them is fine until you want a typed
+        submission. Every existing tool I found either solved the map for me,
+        which is not the point of the exercise, or produced something ugly.
+      </p>
+      <p>
+        So <a href="../../kmap-looper/">K-Map Looper</a> does exactly one
+        thing. You fill the cells, you click which cells belong to each group,
+        and it draws the loops cleanly and exports a PNG. It never simplifies
+        anything. The thinking stays yours.
+      </p>
+
+      <h2>The grid is a torus</h2>
+      <p>
+        The columns and rows of a K-map are labelled in Gray code order,
+        <code>00 01 11 10</code>, so that neighbouring cells differ in exactly
+        one variable. That is what makes adjacency mean something logically. It
+        also means the first and last columns are adjacent (<code>00</code> and
+        <code>10</code> differ only in the first bit), and likewise the first
+        and last rows. Topologically the map is a torus, and a valid group can
+        cross either edge.
+      </p>
+      <p>
+        On paper you draw those as loops that run off one side and come back
+        on the other. On a canvas that is the whole problem: a rectangle with
+        rounded corners is easy, a rectangle that leaves the drawing is not.
+      </p>
+
+      <h2>Represent a group as rows × columns</h2>
+      <p>
+        A group is a set of cells. A <em>valid</em> group is a rectangle on the
+        torus, so its cells are the Cartesian product of a set of rows and a set
+        of columns. I check that first:
+      </p>
+      <pre><code>const rs = unique(cells.map(c => c.row)).sort();
+const cs = unique(cells.map(c => c.col)).sort();
+const product = rs.length * cs.length === cells.length;</code></pre>
+      <p>
+        If the cell count does not equal rows × columns, the user has clicked
+        something that is not a rectangle. The tool still draws it, as a dashed
+        outline per cell, so nothing disappears, but it does not pretend it is
+        a group.
+      </p>
+
+      <h2>Split wrap-around into contiguous runs</h2>
+      <p>
+        A group that wraps horizontally has columns like <code>[0, 3]</code>:
+        the first and the last, nothing in between. Split the sorted indices
+        into runs of consecutive integers:
+      </p>
+      <pre><code>function runs(idxs) {
+  const out = []; let run = [];
+  idxs.forEach(i => {
+    if (run.length && i !== run[run.length - 1] + 1) { out.push(run); run = []; }
+    run.push(i);
+  });
+  if (run.length) out.push(run);
+  return out;
+}
+// runs([0, 3]) → [[0], [3]]     runs([1, 2]) → [[1, 2]]</code></pre>
+      <p>
+        Every combination of a row run and a column run is one rectangular
+        piece to draw. A group that wraps both ways, the four corners of a
+        4×4 map, produces four pieces. A group that does not wrap produces one.
+      </p>
+
+      <h2>The observation: a wrapped piece just has open edges</h2>
+      <p>
+        Each piece is still a rectangle. The only difference is that some of
+        its edges should not be drawn, because the loop continues off the map
+        there. Which edges? A piece has an open left edge when it sits in column
+        0 <em>and</em> the group also contains the last column. Same rule for
+        the other three sides:
+      </p>
+      <pre><code>const openL = c0 === 0      && cs.includes(C - 1) && cs.length &lt; C;
+const openR = c1 === C - 1  && cs.includes(0)     && cs.length &lt; C;
+const openT = r0 === 0      && rs.includes(R - 1) && rs.length &lt; R;
+const openB = r1 === R - 1  && rs.includes(0)     && rs.length &lt; R;</code></pre>
+      <p>
+        The <code>length &lt; C</code> guard matters: a group spanning every
+        column is a full band, not a wrap, and should be closed on both sides.
+      </p>
+      <p>
+        An open edge does two things. The rectangle extends a little past the
+        map on that side so the loop visibly runs off the edge, and the corners
+        on that side are drawn square instead of rounded, because a rounded
+        corner would suggest the loop closes there.
+      </p>
+      <p>
+        Then, rather than building four different path shapes, I stroke the
+        full rounded rectangle and paint over the open edges with a slightly
+        thicker white line. It is not elegant. It is about six lines, it works
+        for every combination, and the exported PNG looks exactly like what you
+        would draw by hand.
+      </p>
+
+      <h2>Nested groups</h2>
+      <p>
+        Groups overlap constantly, a group of four often sits inside a group of
+        eight. Drawing both at the same inset makes them share edges and become
+        unreadable. Each loop gets an inset of <code>10 + (index % 3) * 7</code>
+        pixels, so up to three overlapping loops stagger visibly, and each has
+        its own colour from a six-colour palette chosen to stay distinct in the
+        exported image.
+      </p>
+
+      <h2>Exporting</h2>
+      <p>
+        The canvas is the export. <code>canvas.toBlob()</code> produces a PNG,
+        and where the Clipboard API is allowed it goes straight onto the
+        clipboard for pasting into a document. Where it is not, the tool shows
+        the image inline so it can be dragged or right-click copied, and there
+        is always a download button. The map itself is always rendered on white
+        with fixed dark ink regardless of the page theme, because the export is
+        going into a printed submission.
+      </p>
+
+      <h2>What it deliberately does not do</h2>
+      <p>
+        It does not check that your groups are valid prime implicants, and it
+        does not tell you the minimal expression. Both would be easy to add.
+        Both would turn a drawing aid into a homework solver, and the entire
+        reason to draw a K-map is to see the groupings yourself.
+      </p>
+
+      <div class="callout">
+        <p>The tool is one HTML file with no dependencies: <a href="../../kmap-looper/">use it here</a> or <a href="https://github.com/ahmet-keles/ahmet-keles.github.io/tree/main/kmap-looper">read the source</a>.</p>
+      </div>
+    </article>
+
+    <nav class="page-nav" aria-label="Page navigation">
+      <a class="link-arrow" href="../">All writing</a>
+      <a class="link-arrow" href="../../kmap-looper/">Open K-Map Looper</a>
+    </nav>
+  </main>
+
+  <footer class="site-footer">
+    <p>© 2026 Ahmet Keles · Built with plain HTML &amp; CSS · <a href="https://github.com/ahmet-keles/ahmet-keles.github.io">Source</a></p>
+  </footer>
+
+  <script src="../../assets/site.js" defer></script>
+</body>
+</html>

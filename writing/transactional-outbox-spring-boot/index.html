@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A transactional outbox that survives two replicas · Ahmet Keles</title>
+  <meta name="description" content="Publishing Kafka events from inside a database transaction is wrong in both directions. The outbox pattern fixes that, but the first version I wrote broke as soon as two replicas polled the same table. Here is what it took to make it safe.">
+  <link rel="canonical" href="https://ahmet-keles.github.io/writing/transactional-outbox-spring-boot/">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="A transactional outbox that survives two replicas">
+  <meta property="og:description" content="What it took to make an outbox publisher safe for multiple replicas, bounded in lock hold, and ordered per aggregate.">
+  <meta property="og:url" content="https://ahmet-keles.github.io/writing/transactional-outbox-spring-boot/">
+  <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+  <link rel="alternate" type="application/rss+xml" title="Ahmet Keles — Writing" href="../../feed.xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <script>
+    try {
+      var t = localStorage.getItem("theme");
+      if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+    } catch (e) {}
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <nav class="nav" aria-label="Primary">
+      <a class="nav-name" href="../../">ahmet-keles<span class="nav-cursor" aria-hidden="true">_</span></a>
+      <div class="nav-links">
+        <a href="../../#projects">Projects</a>
+        <a href="../../writing/">Writing</a>
+        <a href="../../#contact">Contact</a>
+        <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle color theme">
+          <svg class="icon-sun" aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+          <svg class="icon-moon" aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg>
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <main id="main" class="page">
+    <p class="breadcrumb"><a href="../../">Home</a> / <a href="../">Writing</a></p>
+
+    <header class="page-head">
+      <h1>A transactional outbox that survives two replicas</h1>
+      <p class="page-lede">
+        Publishing Kafka events from inside a database transaction is wrong in
+        both directions. The outbox pattern fixes that. But the first outbox I
+        wrote broke the moment two copies of the service polled the same table.
+      </p>
+      <div class="page-meta">
+        <span><time datetime="2026-09-18">September 18, 2026</time></span>
+        <span>Java · Spring Boot · PostgreSQL · Kafka</span>
+      </div>
+    </header>
+
+    <article class="prose">
+      <h2>Why not just call send()?</h2>
+      <p>
+        The obvious way to emit an event is to call
+        <code>kafkaTemplate.send()</code> from inside the service method that
+        changes state. It fails two ways:
+      </p>
+      <ul>
+        <li>The send succeeds, then the transaction rolls back. Kafka now carries an event describing state that never existed.</li>
+        <li>The transaction commits, then the send fails. The state changed and nobody will ever hear about it.</li>
+      </ul>
+      <p>
+        The transactional outbox closes both gaps by making the event part of
+        the same atomic write. The service inserts an <code>outbox_events</code>
+        row in the same transaction as the domain change. A separate publisher
+        polls for unpublished rows and ships them to Kafka. If the business
+        transaction fails, the row never exists. If the send fails, the row
+        stays and is retried.
+      </p>
+      <pre><code>outbox_events
+  id             uuid primary key   -- becomes the envelope's eventId
+  aggregate_type text               -- "Order"
+  aggregate_id   uuid               -- also the Kafka message key
+  event_type     text
+  payload        text               -- JSON, serialized before storing
+  occurred_at    timestamptz
+  published_at   timestamptz null   -- stamped only after broker ack</code></pre>
+
+      <h2>Version one: a SELECT and a loop</h2>
+      <p>My first publisher was about what you would expect:</p>
+      <pre><code>@Scheduled(fixedDelay = 1000)
+public void publish() {
+    for (OutboxEvent e : repo.findTop100ByPublishedAtIsNullOrderByOccurredAtAsc()) {
+        try {
+            kafka.send(topic, e.getAggregateId().toString(), toJson(e)).get();
+            e.markPublished();
+            repo.save(e);
+        } catch (Exception ex) {
+            log.error("failed, will retry", ex);
+        }
+    }
+}</code></pre>
+      <p>
+        It worked with one instance. It has two bugs that only show up with two.
+      </p>
+      <p>
+        <strong>Both replicas claim the same rows.</strong> There is no
+        transaction around the read, so two pollers see the same 100
+        unpublished rows and both publish them. Consumers deduplicate on event
+        id, so nothing corrupts, but every event is sent twice and the two
+        instances fight over <code>published_at</code>.
+      </p>
+      <p>
+        <strong>A failed send reorders the aggregate.</strong> The per-event
+        catch skips the failed row and carries on. If event 3 for an order
+        fails and event 4 succeeds, Kafka receives 4 before 3. My consumers are
+        not reorder-tolerant: <code>INVENTORY_RESERVED</code> and
+        <code>INVENTORY_RESERVATION_FAILED</code> drive first-writer-wins
+        transitions, so inverting them flips an order's terminal state.
+      </p>
+
+      <h2>Version two: claim with SKIP LOCKED</h2>
+      <p>
+        PostgreSQL has exactly the primitive this needs. Claim the batch inside
+        a transaction with <code>FOR UPDATE SKIP LOCKED</code>. Rows another
+        replica is holding are skipped rather than waited on, so concurrent
+        pollers partition the backlog between themselves.
+      </p>
+      <pre><code>SELECT *
+FROM outbox_events
+WHERE published_at IS NULL
+ORDER BY occurred_at ASC, id ASC
+LIMIT :batchSize
+FOR UPDATE SKIP LOCKED</code></pre>
+      <p>
+        The locks live exactly as long as the claiming transaction, so I mark
+        the repository method <code>@Transactional(propagation = MANDATORY)</code>.
+        A caller without a transaction would silently release each lock at
+        statement end and defeat the whole point, so it fails fast instead. A
+        replica that crashes mid-batch loses its connection, its locks go with
+        it, and the rows it never published reappear for the next poller.
+      </p>
+      <p>
+        Inside the batch, a failed send now blocks the rest of that aggregate's
+        events for the remainder of the poll. Other aggregates continue, so one
+        poisonous row cannot stall the whole outbox.
+      </p>
+
+      <h2>Version three: the lock hold I did not think about</h2>
+      <p>
+        Review of version two found a problem I had not considered. The claim
+        transaction ran until every claimed send resolved. With a batch of 500
+        and a send timeout of 2 seconds, a degraded broker could hold row locks
+        and a pooled connection for <em>1000 seconds</em>. That is not a
+        theoretical number, it was the product of my own defaults.
+      </p>
+      <p>The hold is now capped three ways, none of which depend on batch size:</p>
+      <ol>
+        <li>A <strong>poll deadline</strong> (4 s). No new send starts after it. Unreached rows stay pending for the next poll.</li>
+        <li>A <strong>local send timeout</strong> (2 s) that aborts the rest of the poll. A local timeout means the broker is degraded, and spending a timeout per remaining row would multiply the hold for no benefit.</li>
+        <li>Producer <code>max.block.ms</code> configured down to 2 s, so a metadata stall inside <code>send()</code> cannot pin the transaction for the producer default of 60 seconds.</li>
+      </ol>
+      <p>
+        Worst case is deadline + max.block + send-timeout = 8 seconds, on one
+        connection per replica. I reduced the batch to 25 as well, but the
+        bound no longer relies on that.
+      </p>
+
+      <h2>Ordering across replicas</h2>
+      <p>
+        <code>SKIP LOCKED</code> introduces a subtler reordering. Replica A
+        claims an order's event 3. Replica B polls, skips the locked row, and
+        claims event 4 of the same order. B publishes 4 before A publishes 3.
+        Same-key-same-partition does not help because the events arrive at the
+        broker out of order.
+      </p>
+      <p>
+        The fix is a check inside the claim transaction: for every aggregate in
+        my batch, am I holding its <em>oldest</em> unpublished event?
+      </p>
+      <pre><code>SELECT DISTINCT ON (aggregate_id) id
+FROM outbox_events
+WHERE published_at IS NULL
+  AND aggregate_id IN (:aggregateIds)
+ORDER BY aggregate_id, occurred_at ASC, id ASC</code></pre>
+      <p>
+        If the oldest pending id for an aggregate is not the first one I
+        claimed, another replica has the earlier event in flight, so I defer
+        that aggregate to a later poll. Under READ COMMITTED a row the other
+        replica already committed as published is invisible here, and a row it
+        failed on still counts as pending. Both cases make the guard
+        conservative: it can only defer needlessly, never publish early. It
+        costs one indexed query per poll and needs no schema change.
+      </p>
+
+      <h2>What this does and does not give you</h2>
+      <p>
+        Delivery is <strong>at-least-once, not exactly-once</strong>.
+        <code>published_at</code> is stamped only after the broker acknowledges
+        the send, never before, so a failure between send and commit re-sends
+        rather than loses. Two windows produce duplicates on purpose: the send
+        succeeds but the commit fails, and the send times out locally but the
+        broker accepts it anyway. Consumers must deduplicate on event id. That
+        is the subject of <a href="../idempotent-kafka-consumers/">the next post</a>.
+      </p>
+      <p>
+        Per-aggregate ordering is preserved end to end. Cross-aggregate
+        ordering is not, and should not be relied on.
+      </p>
+
+      <h2>Testing it</h2>
+      <p>
+        Every property above has a Testcontainers test against real PostgreSQL:
+        concurrent claims never overlap, locked rows are skipped rather than
+        waited on, two publishers send each event exactly once, failed and
+        timed-out sends leave rows pending, a later event is held while another
+        transaction locks the earlier one and is published in order once
+        released, and an expired poll deadline sends nothing and leaves every
+        claimed row claimable. I would not trust a locking contract I had only
+        reasoned about.
+      </p>
+
+      <div class="callout">
+        <p>The full implementation is in <a href="https://github.com/ahmet-keles/event-driven-commerce/blob/main/services/order-service/src/main/java/com/ahmetkeles/orderservice/outbox/OutboxPublisher.java">OutboxPublisher.java</a> and <a href="https://github.com/ahmet-keles/event-driven-commerce/blob/main/services/order-service/src/main/java/com/ahmetkeles/orderservice/outbox/OutboxEventRepository.java">OutboxEventRepository.java</a>. The system it belongs to is described in the <a href="../../projects/event-driven-commerce/">case study</a>.</p>
+      </div>
+    </article>
+
+    <nav class="page-nav" aria-label="Page navigation">
+      <a class="link-arrow" href="../">All writing</a>
+      <a class="link-arrow" href="../idempotent-kafka-consumers/">Next: idempotent consumers</a>
+    </nav>
+  </main>
+
+  <footer class="site-footer">
+    <p>© 2026 Ahmet Keles · Built with plain HTML &amp; CSS · <a href="https://github.com/ahmet-keles/ahmet-keles.github.io">Source</a></p>
+  </footer>
+
+  <script src="../../assets/site.js" defer></script>
+</body>
+</html>

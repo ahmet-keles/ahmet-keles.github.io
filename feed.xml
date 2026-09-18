@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Ahmet Keles — Writing</title>
+    <link>https://ahmet-keles.github.io/writing/</link>
+    <description>Notes on backend and distributed systems from things I have built.</description>
+    <language>en</language>
+    <lastBuildDate>Fri, 18 Sep 2026 00:00:00 GMT</lastBuildDate>
+    <atom:link href="https://ahmet-keles.github.io/feed.xml" rel="self" type="application/rss+xml"/>
+
+    <item>
+      <title>A transactional outbox that survives two replicas</title>
+      <link>https://ahmet-keles.github.io/writing/transactional-outbox-spring-boot/</link>
+      <guid isPermaLink="true">https://ahmet-keles.github.io/writing/transactional-outbox-spring-boot/</guid>
+      <pubDate>Fri, 18 Sep 2026 00:00:00 GMT</pubDate>
+      <description>Publishing Kafka events from inside a database transaction is wrong in both directions. The outbox pattern fixes that, but the first outbox I wrote broke as soon as two replicas polled the same table, and the second held locks for 1000 seconds. Here is what it took to make it safe: SKIP LOCKED claims, a bounded lock hold, and a cross-replica ordering guard.</description>
+    </item>
+
+    <item>
+      <title>Idempotent Kafka consumers: the claim goes inside the transaction</title>
+      <link>https://ahmet-keles.github.io/writing/idempotent-kafka-consumers/</link>
+      <guid isPermaLink="true">https://ahmet-keles.github.io/writing/idempotent-kafka-consumers/</guid>
+      <pubDate>Fri, 18 Sep 2026 00:00:00 GMT</pubDate>
+      <description>At-least-once delivery means every consumer will eventually see a duplicate. A processed-events ledger handles that, but where you put the ledger write decides whether a retry can lose the event forever. Plus how to classify failures so retries and dead letters do the right thing, and why the ledger's retention bounds the guarantee.</description>
+    </item>
+
+    <item>
+      <title>Drawing wrap-around Karnaugh map loops on a canvas</title>
+      <link>https://ahmet-keles.github.io/writing/karnaugh-map-loops-canvas/</link>
+      <guid isPermaLink="true">https://ahmet-keles.github.io/writing/karnaugh-map-loops-canvas/</guid>
+      <pubDate>Fri, 18 Sep 2026 00:00:00 GMT</pubDate>
+      <description>A Karnaugh map group can wrap from the top row to the bottom or the left column to the right. Drawing that on a canvas without special-casing every shape came down to one observation about Gray code and open edges. How K-Map Looper turns a set of cells into loop pieces, and why it refuses to solve the map for you.</description>
+    </item>
+  </channel>
+</rss>
