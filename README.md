@@ -15,9 +15,8 @@ projects/<slug>/index.html        project case studies
 writing/index.html                writing index
 writing/<slug>/index.html         one directory per post
 feed.xml                          RSS feed (hand-maintained; add an <item> per post)
-resume/index.html                 printable resume; source of the PDF below
 assets/Ahmet-Keles-Resume.pdf     resume PDF linked from the homepage
-kmap-looper/                      K-Map Looper tool (single file, no dependencies)
+kmap-looper/                      K-Map Looper tool (single file, no dependencies) and its preview image
 assets/styles.css                 design system: tokens, light/dark themes, layout, article pages
 assets/site.js                    theme toggle (persists to localStorage)
 assets/favicon.svg                favicon
@@ -30,11 +29,10 @@ assets/favicon.svg                favicon
    `index.html`.
 3. Add an `<item>` to `feed.xml` and bump `lastBuildDate`.
 
-## Regenerating the resume PDF
+## Updating the resume
 
-`resume/index.html` is the source. Open it in a browser and print to PDF
-(Letter, background graphics on) to `assets/Ahmet-Keles-Resume.pdf`, or run
-headless Chromium against a local server. No build step is required.
+Overwrite `assets/Ahmet-Keles-Resume.pdf`; the Resume buttons in the hero and
+Contact sections link to that path.
 
 ## Local preview
 

@@ -122,17 +122,25 @@
         </div>
       </article>
 
+      <p class="project-group">Systems · in development</p>
       <div class="project-grid">
         <article class="project">
           <div class="project-head">
             <h3>NovaSearch</h3>
-            <span class="status status-wip">In Development</span>
+            <span class="status status-wip">Milestone 1</span>
           </div>
-          <p class="project-stack">Python · FastAPI · LangChain · PostgreSQL/pgvector · Redis · Docker</p>
+          <p class="project-stack">Python · FastAPI · PostgreSQL/pgvector · Redis · Docker</p>
           <p class="project-desc">
-            AI-powered hybrid search platform combining keyword retrieval, vector
-            search, and RAG-oriented architecture.
+            Hybrid search engine: keyword and semantic retrieval over one
+            PostgreSQL database, fused with Reciprocal Rank Fusion.
           </p>
+          <ul class="project-now">
+            <li>Ingestion with deterministic chunking</li>
+            <li>Keyword (GIN), semantic (HNSW), and hybrid (RRF) modes</li>
+            <li>Redis cache invalidated atomically with the write</li>
+            <li>47 tests against real Postgres and Redis, in CI</li>
+          </ul>
+          <p class="project-next"><strong>Next</strong> model-backed embeddings, then a RAG layer</p>
           <div class="project-links">
             <a class="link-arrow" href="https://github.com/ahmet-keles/novasearch">GitHub</a>
           </div>
@@ -141,13 +149,20 @@
         <article class="project">
           <div class="project-head">
             <h3>Distributed Job Scheduler</h3>
-            <span class="status status-wip">In Development</span>
+            <span class="status status-wip">Milestone 1</span>
           </div>
           <p class="project-stack">Java · Spring Boot · PostgreSQL · Docker</p>
           <p class="project-desc">
-            Distributed background-job platform focused on reliable scheduling,
-            worker coordination, retries, leases, and execution tracking.
+            Background-job platform where competing workers coordinate through
+            PostgreSQL row locks alone: no broker, no coordination service.
           </p>
+          <ul class="project-now">
+            <li>REST API, immediate and delayed jobs, cancellation</li>
+            <li>Claims via SKIP LOCKED, leases, heartbeats, crash reaper</li>
+            <li>Bounded retries and fenced attempt history</li>
+            <li>43 tests including two-worker claim races, in CI</li>
+          </ul>
+          <p class="project-next"><strong>Next</strong> cron schedules, dependencies, priorities</p>
           <div class="project-links">
             <a class="link-arrow" href="https://github.com/ahmet-keles/distributed-job-scheduler">GitHub</a>
           </div>
@@ -156,35 +171,51 @@
         <article class="project">
           <div class="project-head">
             <h3>Distributed Object Storage</h3>
-            <span class="status status-wip">In Development</span>
+            <span class="status status-wip">Milestone 1</span>
           </div>
           <p class="project-stack">Java · Spring Boot · PostgreSQL · Docker</p>
           <p class="project-desc">
-            Distributed object storage system exploring chunking, replication,
-            checksums, node failure handling, and distributed placement.
+            Objects split into chunks, replicated to two of three storage nodes,
+            SHA-256-verified end to end, readable through a node failure.
           </p>
+          <ul class="project-now">
+            <li>Coordinator plus dumb storage nodes, 1 MiB chunks</li>
+            <li>Deterministic placement, replication factor 2</li>
+            <li>Corrupt or dead replica falls through to the next</li>
+            <li>End-to-end suite stops a real node mid-test, in CI</li>
+          </ul>
+          <p class="project-next"><strong>Next</strong> repair and re-replication, consistent hashing</p>
           <div class="project-links">
             <a class="link-arrow" href="https://github.com/ahmet-keles/distributed-object-storage">GitHub</a>
           </div>
         </article>
+      </div>
 
-        <article class="project">
+      <p class="project-group">Tools · things you can use right now</p>
+      <article class="project project-tool">
+        <a class="project-media" href="kmap-looper/" aria-label="Open K-Map Looper">
+          <img src="kmap-looper/preview.png" alt="A 4-variable Karnaugh map with three colored group loops drawn by K-Map Looper, one of them wrapping around all four corners" width="720" height="640" loading="lazy">
+        </a>
+        <div class="project-body">
           <div class="project-head">
             <h3>K-Map Looper</h3>
             <span class="status status-done">Live</span>
           </div>
-          <p class="project-stack">HTML · Canvas · Vanilla JavaScript</p>
+          <p class="project-stack">HTML · Canvas · Vanilla JavaScript · one file, no dependencies</p>
           <p class="project-desc">
-            Browser tool for digital-logic coursework: fill a Karnaugh map, draw
-            colored group loops (with wrap-around), and export a clean PNG for
-            typed submissions. Draws — doesn't solve.
+            For digital-logic coursework. Fill a 2, 3, or 4-variable Karnaugh
+            map, click the cells that belong to each group, and it draws the
+            loops cleanly, wrap-around included, then exports a PNG for a typed
+            submission. Draws — doesn't solve, because seeing the groupings is
+            the whole exercise.
           </p>
           <div class="project-links">
             <a class="link-arrow" href="kmap-looper/">Open tool</a>
+            <a class="link-arrow" href="writing/karnaugh-map-loops-canvas/">How it draws wrap-around loops</a>
             <a class="link-arrow" href="https://github.com/ahmet-keles/ahmet-keles.github.io/tree/main/kmap-looper">Source</a>
           </div>
-        </article>
-      </div>
+        </div>
+      </article>
     </section>
 
     <!-- ============ WRITING ============ -->
