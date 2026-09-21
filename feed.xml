@@ -5,8 +5,16 @@
     <link>https://ahmet-keles.github.io/writing/</link>
     <description>Notes on backend and distributed systems from things I have built.</description>
     <language>en</language>
-    <lastBuildDate>Fri, 18 Sep 2026 00:00:00 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 21 Sep 2026 00:00:00 GMT</lastBuildDate>
     <atom:link href="https://ahmet-keles.github.io/feed.xml" rel="self" type="application/rss+xml"/>
+
+    <item>
+      <title>Logic Diagram Tool: from a Boolean equation to the gate diagram and truth table</title>
+      <link>https://ahmet-keles.github.io/logic/</link>
+      <guid isPermaLink="true">https://ahmet-keles.github.io/logic/</guid>
+      <pubDate>Mon, 21 Sep 2026 00:00:00 GMT</pubDate>
+      <description>A browser tool for digital-logic lab reports. Type a Boolean equation with up to four inputs (A·B, A+B, A', A⊕B, or the words AND/OR/NOT/XOR/NAND/NOR/XNOR) and it draws the ANSI gate diagram with orthogonal wires and junction dots, folds NOT-over-AND/OR/XOR into single NAND/NOR/XNOR gates, builds the full truth table with every intermediate column, and exports SVG or PNG. One HTML file, no dependencies, no network requests.</description>
+    </item>
 
     <item>
       <title>A transactional outbox that survives two replicas</title>
