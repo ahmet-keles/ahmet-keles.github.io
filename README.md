@@ -17,6 +17,7 @@ writing/<slug>/index.html         one directory per post
 feed.xml                          RSS feed (hand-maintained; add an <item> per post)
 assets/Ahmet-Keles-Resume.pdf     resume PDF linked from the homepage
 kmap-looper/                      K-Map Looper tool (single file, no dependencies) and its preview image
+logic/                            Logic Diagram Tool (single file, no dependencies) and its preview image
 assets/styles.css                 design system: tokens, light/dark themes, layout, article pages
 assets/site.js                    theme toggle (persists to localStorage)
 assets/favicon.svg                favicon
