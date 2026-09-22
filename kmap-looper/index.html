@@ -10,21 +10,25 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
+@property --l1 { syntax: "<color>"; inherits: true; initial-value: #D7263D; }
+@property --l2 { syntax: "<color>"; inherits: true; initial-value: #1B6CA8; }
+@property --l3 { syntax: "<color>"; inherits: true; initial-value: #2A9D4B; }
+@property --l4 { syntax: "<color>"; inherits: true; initial-value: #E08E00; }
+@property --l5 { syntax: "<color>"; inherits: true; initial-value: #7B3FA0; }
+@property --l6 { syntax: "<color>"; inherits: true; initial-value: #0E8C8C; }
 :root{
-  --bg:#F7F7F4; --panel:#FFFFFF; --ink:#1C1F26; --muted:#5E6470; --line:#D5D8DE; --grid:#2B2F38;
-  --accent:#1B6CA8; --accent-ink:#fff; --cell-on:#EEF3F8;
-  --l1:#D7263D; --l2:#1B6CA8; --l3:#2A9D4B; --l4:#E08E00; --l5:#7B3FA0; --l6:#0E8C8C;
+  color-scheme: light dark;
+  --bg:light-dark(#F7F7F4,#15171C); --panel:light-dark(#FFFFFF,#1E2128);
+  --ink:light-dark(#1C1F26,#ECEEF2); --muted:light-dark(#5E6470,#9AA1AD);
+  --line:light-dark(#D5D8DE,#343946); --grid:light-dark(#2B2F38,#E4E7ED);
+  --accent:#1B6CA8; --accent-ink:#fff; --cell-on:light-dark(#EEF3F8,#26303C);
+  /* Loop colours: the dark variants are lifted for contrast on a dark grid. */
+  --l1:light-dark(#D7263D,#FF5A6E); --l2:light-dark(#1B6CA8,#5AA6E8);
+  --l3:light-dark(#2A9D4B,#4CC96E); --l4:light-dark(#E08E00,#FFB43A);
+  --l5:light-dark(#7B3FA0,#B57BE0); --l6:light-dark(#0E8C8C,#3FC7C7);
 }
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#15171C; --panel:#1E2128; --ink:#ECEEF2; --muted:#9AA1AD; --line:#343946; --grid:#E4E7ED; --cell-on:#26303C;
-    --l1:#FF5A6E; --l2:#5AA6E8; --l3:#4CC96E; --l4:#FFB43A; --l5:#B57BE0; --l6:#3FC7C7;
-  }
-}
-:root[data-theme="dark"]{
-  --bg:#15171C; --panel:#1E2128; --ink:#ECEEF2; --muted:#9AA1AD; --line:#343946; --grid:#E4E7ED; --cell-on:#26303C;
-  --l1:#FF5A6E; --l2:#5AA6E8; --l3:#4CC96E; --l4:#FFB43A; --l5:#B57BE0; --l6:#3FC7C7;
-}
+:root[data-theme="light"]{color-scheme:light}
+:root[data-theme="dark"]{color-scheme:dark}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:14px;padding-block:20px;padding-inline:16px}
 .wrap{max-width:1060px;margin:0 auto;display:grid;grid-template-columns:300px 1fr;gap:24px}
@@ -56,6 +60,18 @@ canvas{max-width:100%;height:auto;background:#fff;border:1px solid var(--line);b
 kbd{font-family:"IBM Plex Mono",monospace;background:var(--cell-on);border:1px solid var(--line);border-radius:4px;padding:0 5px}
 [hidden]{display:none!important}
 </style>
+<script>
+// Honour a theme pinned on the main site (the [data-theme] rules above);
+// otherwise follow the operating system. Runs before first paint.
+{
+  let theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  try {
+    const saved = localStorage.getItem("theme");
+    if (saved === "light" || saved === "dark") theme = saved;
+  } catch { /* storage blocked — fall back to the system preference */ }
+  document.documentElement.dataset.theme = theme;
+}
+</script>
 </head>
 <body>
 

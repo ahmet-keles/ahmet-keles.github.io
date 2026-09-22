@@ -8,19 +8,17 @@
 <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
 <style>
 :root{
-  --bg:#F7F7F4; --panel:#FFFFFF; --ink:#1C1F26; --muted:#5E6470; --line:#D5D8DE;
-  --accent:#1B6CA8; --accent-ink:#fff; --row-on:#EEF6E9; --err-bg:#FDECEC; --err-ink:#8A1C1C; --code-bg:#F0F1F3;
+  color-scheme: light dark;
+  --bg:light-dark(#F7F7F4,#15171C); --panel:light-dark(#FFFFFF,#1E2128);
+  --ink:light-dark(#1C1F26,#ECEEF2); --muted:light-dark(#5E6470,#9AA1AD);
+  --line:light-dark(#D5D8DE,#343946);
+  --accent:light-dark(#1B6CA8,#5AA6E8); --accent-ink:light-dark(#fff,#0f1115);
+  --row-on:light-dark(#EEF6E9,#233426);
+  --err-bg:light-dark(#FDECEC,#3A1F1F); --err-ink:light-dark(#8A1C1C,#FFB4B4);
+  --code-bg:light-dark(#F0F1F3,#262A33);
 }
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#15171C; --panel:#1E2128; --ink:#ECEEF2; --muted:#9AA1AD; --line:#343946;
-    --accent:#5AA6E8; --accent-ink:#0f1115; --row-on:#233426; --err-bg:#3A1F1F; --err-ink:#FFB4B4; --code-bg:#262A33;
-  }
-}
-:root[data-theme="dark"]{
-  --bg:#15171C; --panel:#1E2128; --ink:#ECEEF2; --muted:#9AA1AD; --line:#343946;
-  --accent:#5AA6E8; --accent-ink:#0f1115; --row-on:#233426; --err-bg:#3A1F1F; --err-ink:#FFB4B4; --code-bg:#262A33;
-}
+:root[data-theme="light"]{color-scheme:light}
+:root[data-theme="dark"]{color-scheme:dark}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.45;padding:20px 16px 32px}
@@ -78,6 +76,18 @@ footer a,.panel a{color:var(--accent)}
   .palette button{min-width:34px}
 }
 </style>
+<script>
+// Honour a theme pinned on the main site (the [data-theme] rules above);
+// otherwise follow the operating system. Runs before first paint.
+{
+  let theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  try {
+    const saved = localStorage.getItem("theme");
+    if (saved === "light" || saved === "dark") theme = saved;
+  } catch { /* storage blocked — fall back to the system preference */ }
+  document.documentElement.dataset.theme = theme;
+}
+</script>
 </head>
 <body>
 <div class="wrap">

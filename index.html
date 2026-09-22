@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ahmet Keles — Software Engineer</title>
-  <meta name="description" content="Ahmet Keles — Computer Science student at UT Dallas building backend and distributed systems: reliability, concurrency, messaging, search, and scalable infrastructure.">
+  <title>Ahmet Keles — Backend &amp; Distributed Systems</title>
+  <meta name="description" content="CS at UT Dallas. I build backend systems that stay correct under duplicate delivery, partial failure and concurrent writes. Seeking Summer 2027 SWE internships.">
   <link rel="canonical" href="https://ahmet-keles.github.io/">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Ahmet Keles — Software Engineer">
-  <meta property="og:description" content="Backend and distributed systems: reliability, concurrency, messaging, search, and scalable infrastructure. CS @ UT Dallas, seeking Summer 2027 SWE internships.">
+  <meta property="og:title" content="Ahmet Keles — Backend &amp; Distributed Systems">
+  <meta property="og:description" content="Kafka sagas, transactional outboxes, idempotent consumers, and workers that race for the same row. CS @ UT Dallas, seeking Summer 2027 SWE internships.">
   <meta property="og:url" content="https://ahmet-keles.github.io/">
   <meta property="og:image" content="https://ahmet-keles.github.io/assets/og.png">
   <meta property="og:image:width" content="1200">
@@ -43,13 +43,16 @@
   }
   </script>
   <script>
-    // Apply the stored theme before first paint to avoid a flash.
-    try {
-      var t = localStorage.getItem("theme");
-      if (t === "light" || t === "dark") {
-        document.documentElement.setAttribute("data-theme", t);
-      }
-    } catch (e) { /* storage unavailable; fall back to system preference */ }
+    // Resolve the theme before first paint: no flash of the wrong colours, and
+    // the toggle stays hidden until this has run (see .theme-toggle in the CSS).
+    {
+      let theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      try {
+        const saved = localStorage.getItem("theme");
+        if (saved === "light" || saved === "dark") theme = saved;
+      } catch { /* storage blocked — fall back to the system preference */ }
+      document.documentElement.dataset.theme = theme;
+    }
   </script>
 </head>
 <body>
@@ -83,10 +86,10 @@
     <section class="hero" id="top">
       <p class="hero-kicker">Computer Science @ UT Dallas</p>
       <h1>Ahmet Keles</h1>
-      <p class="hero-roles">Software Engineering · Backend Systems · Distributed Systems · Applied AI</p>
+      <p class="hero-roles">Backend Systems · Distributed Systems · Applied AI</p>
       <p class="hero-statement">
-        I build backend and distributed systems focused on reliability, concurrency,
-        messaging, search, and scalable infrastructure.
+        I build backend systems that stay correct when things go wrong — duplicate
+        messages, partial failures, and two replicas racing for the same row.
       </p>
       <p class="hero-now">Now: milestone 2 of NovaSearch and the job scheduler, and looking for a Summer 2027 internship. <a href="now/">More on /now</a></p>
       <div class="hero-actions">
@@ -104,15 +107,23 @@
       <div class="about-copy">
         <p>
           I'm a Computer Science student at The University of Texas at Dallas,
-          graduating Fall 2027 and pursuing Summer 2027 software engineering
-          internships. My primary interests are backend engineering and
-          distributed systems, with a secondary interest in applied AI and
-          retrieval systems. I enjoy building practical software projects focused
-          on reliability, scalability, and real-world engineering problems.
+          graduating Fall 2027 and looking for a Summer 2027 software engineering
+          internship. What interests me is the part of backend work that only
+          shows up under load or failure: getting exactly-once effects on top of
+          at-least-once delivery, holding a transaction's guarantees across a
+          service boundary, and keeping concurrent writers from quietly losing
+          each other's updates.
         </p>
         <p>
-          Alongside backend systems, I'm also exploring applied AI through
-          search, retrieval, vector databases, and RAG-oriented projects.
+          Most of what I know came from building the systems below and then
+          breaking them on purpose — stopping a storage node mid-request, pointing
+          two publisher replicas at one table, racing two workers for the same
+          job. The posts under Writing are what those experiments taught me.
+        </p>
+        <p>
+          Applied AI arrives the same way round: NovaSearch is a retrieval
+          problem first — keyword and vector search over one database, fused and
+          cached — and an AI problem second.
         </p>
       </div>
     </section>
@@ -130,9 +141,10 @@
         </div>
         <p class="project-stack">Java · Spring Boot · Kafka · PostgreSQL · Docker · Testcontainers</p>
         <p class="project-desc">
-          Three-service event-driven commerce backend coordinating orders, inventory,
-          and payments using Kafka and isolated databases, with reliability patterns
-          for duplicate delivery, failures, and concurrent processing.
+          Orders, inventory and payments as three services with separate databases,
+          coordinated over Kafka. Built around the failure cases rather than the
+          happy path: duplicate delivery, a saga that fails halfway, and two
+          writers reaching the same order at once.
         </p>
         <ul class="project-highlights">
           <li>Transactional outbox</li>
@@ -158,8 +170,8 @@
           </div>
           <p class="project-stack">Python · FastAPI · PostgreSQL/pgvector · Redis · Docker</p>
           <p class="project-desc">
-            Hybrid search engine: keyword and semantic retrieval over one
-            PostgreSQL database, fused with Reciprocal Rank Fusion.
+            Hybrid search: keyword and semantic retrieval over a single PostgreSQL
+            database, fused with Reciprocal Rank Fusion.
           </p>
           <ul class="project-now">
             <li>Ingestion with deterministic chunking</li>
@@ -180,8 +192,8 @@
           </div>
           <p class="project-stack">Java · Spring Boot · PostgreSQL · Docker</p>
           <p class="project-desc">
-            Background-job platform where competing workers coordinate through
-            PostgreSQL row locks alone: no broker, no coordination service.
+            A background-job platform where competing workers coordinate through
+            PostgreSQL row locks alone — no broker, no coordination service.
           </p>
           <ul class="project-now">
             <li>REST API, immediate and delayed jobs, cancellation</li>
@@ -202,8 +214,8 @@
           </div>
           <p class="project-stack">Java · Spring Boot · PostgreSQL · Docker</p>
           <p class="project-desc">
-            Objects split into chunks, replicated to two of three storage nodes,
-            SHA-256-verified end to end, readable through a node failure.
+            Objects split into chunks and replicated to two of three storage nodes,
+            SHA-256-verified end to end, and still readable through a node failure.
           </p>
           <ul class="project-now">
             <li>Coordinator plus dumb storage nodes, 1 MiB chunks</li>
@@ -230,11 +242,11 @@
           </div>
           <p class="project-stack">HTML · Canvas · Vanilla JavaScript · one file, no dependencies</p>
           <p class="project-desc">
-            For digital-logic coursework. Fill a 2, 3, or 4-variable Karnaugh
-            map, click the cells that belong to each group, and it draws the
-            loops cleanly, wrap-around included, then exports a PNG for a typed
-            submission. Draws — doesn't solve, because seeing the groupings is
-            the whole exercise.
+            For digital-logic coursework. Fill a 2, 3, or 4-variable Karnaugh map,
+            click the cells in each group, and it draws the loops cleanly —
+            wrap-around included — then exports a PNG for a typed submission. It
+            draws rather than solves, because spotting the groupings is the
+            exercise.
           </p>
           <div class="project-links">
             <a class="link-arrow" href="kmap-looper/">Open tool</a>
@@ -303,7 +315,7 @@
           </div>
         </li>
       </ul>
-      <div class="project-links" style="margin-top:18px">
+      <div class="project-links stack-sm">
         <a class="link-arrow" href="writing/">All writing</a>
         <a class="link-arrow" href="feed.xml">RSS</a>
       </div>
@@ -436,9 +448,9 @@
   </main>
 
   <footer class="site-footer">
-    <p>© 2026 Ahmet Keles · Built with plain HTML &amp; CSS · <a href="https://github.com/ahmet-keles/ahmet-keles.github.io">Source</a></p>
+    <p>© 2026 Ahmet Keles · Hand-written HTML and CSS, no framework, no build step · <a href="https://github.com/ahmet-keles/ahmet-keles.github.io">Source</a></p>
   </footer>
 
-  <script src="assets/site.js" defer></script>
+  <script type="module" src="assets/site.js"></script>
 </body>
 </html>
