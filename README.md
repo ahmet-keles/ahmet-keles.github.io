@@ -13,6 +13,7 @@ light/dark theme toggle). No frameworks, no build step, no analytics.
 index.html                        homepage
 projects/<slug>/index.html        project case studies
 writing/index.html                writing index
+now/index.html                    /now page: what I am doing this semester (edit by hand)
 writing/<slug>/index.html         one directory per post
 feed.xml                          RSS feed (hand-maintained; add an <item> per post)
 assets/Ahmet-Keles-Resume.pdf     resume PDF linked from the homepage

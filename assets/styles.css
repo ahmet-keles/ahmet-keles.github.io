@@ -756,3 +756,47 @@ main {
   .project-tool { grid-template-columns: 1fr; }
   .project-tool .project-media { border-right: 0; border-bottom: 1px solid var(--rule); }
 }
+
+/* ---------- hero "now" line ---------- */
+
+.hero-now {
+  font-size: 15px;
+  color: var(--muted);
+  margin: -14px 0 32px;
+}
+.hero-now a { font-weight: 600; text-decoration: none; }
+.hero-now a:hover { text-decoration: underline; }
+
+/* ---------- evidence-backed skills ---------- */
+
+.chips a {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  padding: 5px 12px;
+  text-decoration: none;
+}
+.chips a:hover { border-color: var(--accent); color: var(--accent); }
+.chips a small {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+.chips li:has(> a) { padding: 0; border: 0; background: none; }
+
+.skills-note {
+  margin-top: 28px;
+  padding-top: 18px;
+  border-top: 1px solid var(--rule);
+  font-size: 14.5px;
+  color: var(--muted);
+  max-width: 72ch;
+}
+.skills-note strong { color: var(--ink-soft); font-weight: 600; }
