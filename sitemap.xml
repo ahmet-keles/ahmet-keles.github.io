@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://ahmet-keles.github.io/</loc><lastmod>2026-09-22</lastmod></url>
+  <url><loc>https://ahmet-keles.github.io/projects/event-driven-commerce/</loc><lastmod>2026-09-18</lastmod></url>
+  <url><loc>https://ahmet-keles.github.io/writing/</loc><lastmod>2026-09-21</lastmod></url>
+  <url><loc>https://ahmet-keles.github.io/writing/transactional-outbox-spring-boot/</loc><lastmod>2026-09-18</lastmod></url>
+  <url><loc>https://ahmet-keles.github.io/writing/idempotent-kafka-consumers/</loc><lastmod>2026-09-18</lastmod></url>
+  <url><loc>https://ahmet-keles.github.io/writing/karnaugh-map-loops-canvas/</loc><lastmod>2026-09-18</lastmod></url>
+  <url><loc>https://ahmet-keles.github.io/now/</loc><lastmod>2026-09-22</lastmod></url>
+  <url><loc>https://ahmet-keles.github.io/uses/</loc><lastmod>2026-09-22</lastmod></url>
+  <url><loc>https://ahmet-keles.github.io/kmap-looper/</loc><lastmod>2026-09-17</lastmod></url>
+  <url><loc>https://ahmet-keles.github.io/logic/</loc><lastmod>2026-09-21</lastmod></url>
+</urlset>

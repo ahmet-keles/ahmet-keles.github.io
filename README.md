@@ -14,6 +14,10 @@ index.html                        homepage
 projects/<slug>/index.html        project case studies
 writing/index.html                writing index
 now/index.html                    /now page: what I am doing this semester (edit by hand)
+uses/index.html                   /uses page: the stack, with versions
+404.html                          not-found page (GitHub Pages serves it automatically)
+sitemap.xml, robots.txt           crawler hints; add new pages to the sitemap
+assets/og.png                     link-preview image (1200x630) referenced by every page
 writing/<slug>/index.html         one directory per post
 feed.xml                          RSS feed (hand-maintained; add an <item> per post)
 assets/Ahmet-Keles-Resume.pdf     resume PDF linked from the homepage
@@ -30,6 +34,7 @@ assets/favicon.svg                favicon
 2. Add it to the list in `writing/index.html` and the Writing section of
    `index.html`.
 3. Add an `<item>` to `feed.xml` and bump `lastBuildDate`.
+4. Add the URL to `sitemap.xml`.
 
 ## Updating the resume
 
