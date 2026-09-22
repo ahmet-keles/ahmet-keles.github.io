@@ -73,8 +73,13 @@ python3 -m http.server 8000
 # then open http://localhost:8000
 ```
 
-Opening `index.html` directly in a browser also works — all paths are
-relative.
+Opening `index.html` directly in a browser mostly works — all paths are
+relative — but use the server if you are touching JavaScript. `assets/site.js`
+is an ES module, and browsers block module fetches from `file://` pages under
+CORS (the origin is `null`), so over `file://` the theme toggle is hidden and
+nav highlighting is inactive. The pages themselves render fine and the theme
+still follows the operating system, because the pre-paint script in each
+`<head>` is a classic inline script.
 
 ## Deployment
 

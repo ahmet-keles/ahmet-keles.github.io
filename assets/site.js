@@ -59,6 +59,12 @@ if (toggle) {
     stored.write(next);
     transition(() => applyTheme(next));
   });
+
+  // Reveal the toggle only now that it is wired up. The stylesheet keeps it
+  // hidden until this attribute exists, so anywhere this module does not run
+  // — JavaScript switched off, or a file:// page where module fetches are
+  // blocked by CORS — shows no button rather than one that does nothing.
+  root.dataset.siteJs = "ready";
 }
 
 // Keep following the operating system until the visitor pins a choice.
