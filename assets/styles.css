@@ -254,9 +254,17 @@
     &:hover { color: var(--ink); border-color: var(--faint); }
   }
 
-  /* site.js always writes an explicit data-theme, so no data-theme means
-     no JavaScript — and a toggle that cannot toggle is worse than none. */
-  :root:not([data-theme]) .theme-toggle { display: none; }
+  /* The toggle stays inert until site.js has actually wired it up, which is
+     when the module sets data-site-js. data-theme is not a usable signal
+     here: the inline <head> script sets that, and it still runs in cases
+     where the module never loads — notably a file:// page, where module
+     fetches are blocked by CORS (origin "null"). Gating on data-theme left
+     a visible button that did nothing.
+
+     visibility rather than display so the nav does not reflow when the
+     module resolves; a hidden button is also removed from the tab order
+     and takes no clicks. */
+  :root:not([data-site-js]) .theme-toggle { visibility: hidden; }
 
   /* Each icon shows the theme currently in effect. */
   :root[data-theme="dark"] .icon-sun,
