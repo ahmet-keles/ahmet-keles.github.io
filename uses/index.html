@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Uses · Ahmet Keles</title>
+  <meta name="description" content="The stack Ahmet Keles reaches for: languages, frameworks, databases, testing, and infrastructure, with the projects that use each.">
+  <link rel="canonical" href="https://ahmet-keles.github.io/uses/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Uses · Ahmet Keles">
+  <meta property="og:description" content="The stack I reach for, with versions and the projects that use each piece.">
+  <meta property="og:url" content="https://ahmet-keles.github.io/uses/">
+  <meta property="og:image" content="https://ahmet-keles.github.io/assets/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <link rel="alternate" type="application/rss+xml" title="Ahmet Keles — Writing" href="../feed.xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"></noscript>
+  <link rel="stylesheet" href="../assets/styles.css">
+  <script>
+    try {
+      var t = localStorage.getItem("theme");
+      if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+    } catch (e) {}
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <nav class="nav" aria-label="Primary">
+      <a class="nav-name" href="../">ahmet-keles<span class="nav-cursor" aria-hidden="true">_</span></a>
+      <div class="nav-links">
+        <a href="../#projects">Projects</a>
+        <a href="../writing/">Writing</a>
+        <a href="../now/">Now</a>
+        <a href="../#contact">Contact</a>
+        <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle color theme">
+          <svg class="icon-sun" aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+          <svg class="icon-moon" aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg>
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <main id="main" class="page">
+    <p class="breadcrumb"><a href="../">Home</a> / Uses</p>
+
+    <header class="page-head">
+      <h1>What I use</h1>
+      <p class="page-lede">
+        The stack I reach for, with versions and the project that proves it.
+        Everything here is what the public repositories actually pin, not a
+        wish list.
+      </p>
+      <div class="page-meta">
+        <span>Updated <time datetime="2026-09-22">September 22, 2026</time></span>
+        <span>A <a href="https://uses.tech/">/uses page</a></span>
+      </div>
+    </header>
+
+    <article class="prose">
+      <h2>Backend</h2>
+      <table>
+        <thead><tr><th>Tool</th><th>Version</th><th>Where</th></tr></thead>
+        <tbody>
+          <tr><td>Java</td><td>21</td><td><a href="../projects/event-driven-commerce/">commerce</a>, <a href="https://github.com/ahmet-keles/distributed-job-scheduler">scheduler</a>, <a href="https://github.com/ahmet-keles/distributed-object-storage">storage</a></td></tr>
+          <tr><td>Spring Boot (MVC, Data JPA, Kafka)</td><td>4.1</td><td>same three</td></tr>
+          <tr><td>Maven, via the wrapper</td><td>per module</td><td>same three</td></tr>
+          <tr><td>Python</td><td>3.11+</td><td><a href="https://github.com/ahmet-keles/novasearch">novasearch</a></td></tr>
+          <tr><td>FastAPI, Pydantic 2, SQLAlchemy 2, psycopg 3</td><td>current</td><td>novasearch</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Data and messaging</h2>
+      <table>
+        <thead><tr><th>Tool</th><th>Version</th><th>Where</th></tr></thead>
+        <tbody>
+          <tr><td>PostgreSQL</td><td>17</td><td>every project; one database per service</td></tr>
+          <tr><td>Flyway</td><td>with <code>ddl-auto=validate</code></td><td>the Java projects</td></tr>
+          <tr><td>Alembic</td><td>1.13+</td><td>novasearch</td></tr>
+          <tr><td>pgvector (HNSW) and full-text search (GIN)</td><td>current</td><td>novasearch</td></tr>
+          <tr><td>Redis</td><td>as a disposable cache only</td><td>novasearch</td></tr>
+          <tr><td>Apache Kafka</td><td>4.0, single-node KRaft locally</td><td>commerce</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Testing</h2>
+      <table>
+        <thead><tr><th>Tool</th><th>How</th></tr></thead>
+        <tbody>
+          <tr><td>Testcontainers</td><td>Real PostgreSQL and Kafka in every Java suite; the end-to-end suites run the services themselves as containers.</td></tr>
+          <tr><td>JUnit 5 through Spring Boot Test</td><td>Unit, slice, and integration tests; latches to force specific interleavings in concurrency tests.</td></tr>
+          <tr><td>pytest, httpx</td><td>Unit tests need no services; integration tests run against real PostgreSQL and Redis.</td></tr>
+          <tr><td>ruff</td><td>Lint and import order for Python.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Infrastructure</h2>
+      <table>
+        <thead><tr><th>Tool</th><th>How</th></tr></thead>
+        <tbody>
+          <tr><td>Docker Compose</td><td>Local infrastructure with healthchecks and <code>--wait</code>; named volumes so data survives a restart.</td></tr>
+          <tr><td>GitHub Actions</td><td>Every suite on every push and pull request, in all four repositories.</td></tr>
+          <tr><td>GitHub Pages</td><td>Serves this site from the root of <code>main</code>. No build step.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>This site and the tools on it</h2>
+      <p>
+        Plain HTML, CSS, and vanilla JavaScript, with IBM Plex Sans and Mono.
+        <a href="../kmap-looper/">K-Map Looper</a> draws to a canvas and the
+        <a href="../logic/">Logic Diagram Tool</a> renders inline SVG; both are
+        single files with no dependencies and no network requests. The RSS feed
+        is maintained by hand.
+      </p>
+
+      <h2>Not on this page yet</h2>
+      <p>
+        Editor, terminal, and hardware. I will add them when I have something
+        worth saying about them; a list of defaults is not that.
+      </p>
+    </article>
+
+    <nav class="page-nav" aria-label="Page navigation">
+      <a class="link-arrow" href="../#skills">Skills</a>
+      <a class="link-arrow" href="../now/">Now</a>
+      <a class="link-arrow" href="../#projects">Projects</a>
+    </nav>
+  </main>
+
+  <footer class="site-footer">
+    <p>© 2026 Ahmet Keles · Built with plain HTML &amp; CSS · <a href="https://github.com/ahmet-keles/ahmet-keles.github.io">Source</a></p>
+  </footer>
+
+  <script src="../assets/site.js" defer></script>
+</body>
+</html>
