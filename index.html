@@ -39,6 +39,7 @@
       <div class="nav-links">
         <a href="#projects">Projects</a>
         <a href="#writing">Writing</a>
+        <a href="now/">Now</a>
         <a href="#experience">Experience</a>
         <a href="#skills">Skills</a>
         <a href="#contact">Contact</a>
@@ -65,6 +66,7 @@
         I build backend systems that stay correct when things go wrong — duplicate
         messages, partial failures, and two replicas racing for the same row.
       </p>
+      <p class="hero-now">Now: milestone 2 of NovaSearch and the job scheduler, and looking for a Summer 2027 internship. <a href="now/">More on /now</a></p>
       <div class="hero-actions">
         <a class="btn btn-primary" href="#projects">View Projects</a>
         <a class="btn btn-secondary" href="assets/Ahmet-Keles-Resume.pdf">Resume</a>
@@ -228,6 +230,30 @@
           </div>
         </div>
       </article>
+      <article class="project project-tool">
+        <a class="project-media" href="logic/" aria-label="Open Logic Diagram Tool">
+          <img src="logic/preview.png" alt="The Logic Diagram Tool showing Y2 = ((A'+C')(B'+D'))' drawn with four inverters, two OR gates and a NAND gate in ANSI symbols, with its 16-row truth table below" width="600" height="731" loading="lazy">
+        </a>
+        <div class="project-body">
+          <div class="project-head">
+            <h3>Logic Diagram Tool</h3>
+            <span class="status status-done">Live</span>
+          </div>
+          <p class="project-stack">HTML · SVG · Vanilla JavaScript · one file, no dependencies</p>
+          <p class="project-desc">
+            Type a Boolean equation with up to four inputs and it draws the
+            gate diagram in standard ANSI symbols, generates the full truth
+            table, and exports both as PNG or SVG for a lab report. Parses the
+            usual notations, folds NOT-over-AND/OR/XOR into single NAND/NOR/XNOR
+            gates, and routes the wires with proper junction dots.
+          </p>
+          <div class="project-links">
+            <a class="link-arrow" href="logic/">Open tool</a>
+            <a class="link-arrow" href="https://github.com/ahmet-keles/ahmet-keles.github.io/blob/main/logic/README.md">README</a>
+            <a class="link-arrow" href="https://github.com/ahmet-keles/ahmet-keles.github.io/tree/main/logic">Source</a>
+          </div>
+        </div>
+      </article>
     </section>
 
     <!-- ============ WRITING ============ -->
@@ -235,6 +261,13 @@
       <p class="section-eyebrow">03 · Writing</p>
       <h2 id="writing-heading">Writing</h2>
       <ul class="post-list">
+        <li>
+          <span class="post-date"><time datetime="2026-09-21">Sep 21, 2026</time></span>
+          <div>
+            <a class="post-title" href="logic/">Logic Diagram Tool: from a Boolean equation to the gate diagram and truth table</a>
+            <p class="post-summary">Type an equation with up to four inputs and get the ANSI gate diagram with routed wires and junction dots, the full truth table, and SVG or PNG export. One file, no dependencies.</p>
+          </div>
+        </li>
         <li>
           <span class="post-date"><time datetime="2026-09-18">Sep 18, 2026</time></span>
           <div>
@@ -296,28 +329,45 @@
         <div class="skill-group">
           <h3>Languages</h3>
           <ul class="chips">
-            <li>Java</li><li>Python</li><li>C++</li><li>SQL</li><li>JavaScript</li><li>C#</li>
+            <li><a href="projects/event-driven-commerce/"><span>Java</span><small>commerce · scheduler · storage</small></a></li>
+            <li><a href="https://github.com/ahmet-keles/novasearch"><span>Python</span><small>novasearch</small></a></li>
+            <li><a href="projects/event-driven-commerce/"><span>SQL</span><small>every project</small></a></li>
+            <li><a href="logic/"><span>JavaScript</span><small>logic diagram tool · k-map looper · this site</small></a></li>
           </ul>
         </div>
         <div class="skill-group">
           <h3>Backend</h3>
           <ul class="chips">
-            <li>Spring Boot</li><li>FastAPI</li><li>REST APIs</li><li>gRPC</li>
+            <li><a href="projects/event-driven-commerce/"><span>Spring Boot</span><small>commerce · scheduler · storage</small></a></li>
+            <li><a href="https://github.com/ahmet-keles/novasearch"><span>FastAPI</span><small>novasearch</small></a></li>
+            <li><a href="https://github.com/ahmet-keles/distributed-job-scheduler"><span>REST APIs</span><small>commerce · scheduler · storage</small></a></li>
           </ul>
         </div>
         <div class="skill-group">
           <h3>Data &amp; Messaging</h3>
           <ul class="chips">
-            <li>PostgreSQL</li><li>Kafka</li><li>Redis</li><li>RabbitMQ</li><li>pgvector</li>
+            <li><a href="projects/event-driven-commerce/"><span>PostgreSQL</span><small>every project</small></a></li>
+            <li><a href="projects/event-driven-commerce/"><span>Kafka</span><small>commerce</small></a></li>
+            <li><a href="https://github.com/ahmet-keles/novasearch"><span>Redis</span><small>novasearch</small></a></li>
+            <li><a href="https://github.com/ahmet-keles/novasearch"><span>pgvector</span><small>novasearch</small></a></li>
+            <li><a href="projects/event-driven-commerce/"><span>Flyway</span><small>commerce · scheduler · storage</small></a></li>
           </ul>
         </div>
         <div class="skill-group">
           <h3>Infrastructure</h3>
           <ul class="chips">
-            <li>Docker</li><li>Git</li><li>Linux</li><li>CI/CD</li><li>AWS</li><li>Azure</li><li>Testcontainers</li>
+            <li><a href="projects/event-driven-commerce/"><span>Docker</span><small>every project</small></a></li>
+            <li><a href="projects/event-driven-commerce/"><span>Testcontainers</span><small>commerce · scheduler · storage</small></a></li>
+            <li><a href="projects/event-driven-commerce/"><span>GitHub Actions</span><small>every project</small></a></li>
+            <li><a href="https://github.com/ahmet-keles/ahmet-keles.github.io"><span>Git</span><small>everything here</small></a></li>
           </ul>
         </div>
       </div>
+      <p class="skills-note">
+        Every chip above links to code where I used it. <strong>Also familiar with,</strong>
+        from coursework or smaller work rather than a public project: C++, C#, Linux/UNIX,
+        gRPC, RabbitMQ, AWS, and Azure.
+      </p>
     </section>
 
     <!-- ============ EDUCATION ============ -->

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Now · Ahmet Keles</title>
+  <meta name="description" content="What Ahmet Keles is building, studying, and looking for right now.">
+  <link rel="canonical" href="https://ahmet-keles.github.io/now/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Now · Ahmet Keles">
+  <meta property="og:description" content="What I am building, studying, and looking for right now.">
+  <meta property="og:url" content="https://ahmet-keles.github.io/now/">
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <link rel="alternate" type="application/rss+xml" title="Ahmet Keles — Writing" href="../feed.xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="../assets/styles.css">
+  <script>
+    // Resolve the theme before first paint: no flash of the wrong colours, and
+    // the toggle stays hidden until this has run (see .theme-toggle in the CSS).
+    {
+      let theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      try {
+        const saved = localStorage.getItem("theme");
+        if (saved === "light" || saved === "dark") theme = saved;
+      } catch { /* storage blocked — fall back to the system preference */ }
+      document.documentElement.dataset.theme = theme;
+    }
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <nav class="nav" aria-label="Primary">
+      <a class="nav-name" href="../">ahmet-keles<span class="nav-cursor" aria-hidden="true">_</span></a>
+      <div class="nav-links">
+        <a href="../#projects">Projects</a>
+        <a href="../writing/">Writing</a>
+        <a href="./">Now</a>
+        <a href="../#contact">Contact</a>
+        <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle color theme">
+          <svg class="icon-sun" aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+          <svg class="icon-moon" aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg>
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <main id="main" class="page">
+    <p class="breadcrumb"><a href="../">Home</a> / Now</p>
+
+    <header class="page-head">
+      <h1>What I'm doing now</h1>
+      <p class="page-lede">
+        A snapshot of where my attention is this semester. Updated when it
+        changes, not on a schedule.
+      </p>
+      <div class="page-meta">
+        <span>Updated <time datetime="2026-09-22">September 22, 2026</time></span>
+        <span>Richardson, TX</span>
+        <span>A <a href="https://nownownow.com/about">/now page</a></span>
+      </div>
+    </header>
+
+    <article class="prose">
+      <h2>Building</h2>
+      <ul>
+        <li><strong>NovaSearch, milestone 2.</strong> Milestone 1 shipped hybrid keyword and semantic search with a deterministic bag-of-words embedding baseline. The next step is a real model-backed embedding provider behind the same interface, with embedding versioning so a model change can re-index safely.</li>
+        <li><strong>Distributed Job Scheduler, milestone 2.</strong> The durable core is done: SKIP LOCKED claims, leases, heartbeats, crash recovery, fenced attempt history. Next up are recurring schedules and job dependencies on top of it.</li>
+        <li><strong>Distributed Object Storage.</strong> Reads already survive a node loss. The missing piece is repair: rebuilding a lost node's replicas so redundancy is restored instead of just tolerated.</li>
+        <li><strong>Small tools when coursework needs them.</strong> <a href="../kmap-looper/">K-Map Looper</a> and the <a href="../logic/">Logic Diagram Tool</a> both came out of digital-logic assignments. If another class has a tedious, repetitive drawing or formatting step, it will probably get the same treatment.</li>
+      </ul>
+
+      <h2>Studying</h2>
+      <p>
+        Fall 2026 at The University of Texas at Dallas, on track to graduate in
+        December 2027. Outside class I am going deeper on the things the
+        projects keep running into: PostgreSQL locking and isolation semantics,
+        Kafka delivery guarantees, and how to write tests that force a specific
+        interleaving instead of hoping for one.
+      </p>
+
+      <h2>Writing</h2>
+      <p>
+        I just started <a href="../writing/">writing up</a> the mechanisms
+        behind the commerce platform, one at a time. The outbox and
+        idempotent-consumer posts are up. The next one I want to write is about
+        the latch-driven concurrency tests, because they were the hardest part
+        to get right and the part I learned the most from.
+      </p>
+
+      <h2>Looking for</h2>
+      <p>
+        A <strong>Summer 2027 software engineering internship</strong> in
+        backend, distributed systems, or applied AI. If your team runs services
+        that talk over a message bus, own their own databases, and have to stay
+        correct under retries, I would like to hear about it.
+        <a href="mailto:akeles655@gmail.com">akeles655@gmail.com</a>.
+      </p>
+
+      <h2>Recently shipped</h2>
+      <ul>
+        <li><a href="../projects/event-driven-commerce/">Event-Driven Commerce Platform v1.0.0</a>, with its case study.</li>
+        <li><a href="../logic/">Logic Diagram Tool</a>, Boolean equation to ANSI gate diagram and truth table.</li>
+        <li><a href="../kmap-looper/">K-Map Looper</a>, a Karnaugh map drawing tool.</li>
+        <li>This site's <a href="../writing/">writing section</a> and RSS feed.</li>
+      </ul>
+    </article>
+
+    <nav class="page-nav" aria-label="Page navigation">
+      <a class="link-arrow" href="../#projects">Projects</a>
+      <a class="link-arrow" href="../writing/">Writing</a>
+      <a class="link-arrow" href="../#contact">Contact</a>
+    </nav>
+  </main>
+
+  <footer class="site-footer">
+    <p>© 2026 Ahmet Keles · Hand-written HTML and CSS, no framework, no build step · <a href="https://github.com/ahmet-keles/ahmet-keles.github.io">Source</a></p>
+  </footer>
+
+  <script type="module" src="../assets/site.js"></script>
+</body>
+</html>

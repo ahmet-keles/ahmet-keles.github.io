@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Logic Diagram Tool</title>
+<meta name="description" content="Type a Boolean equation with up to 4 inputs and get the ANSI/IEEE gate diagram and the full truth table. Exports SVG and PNG. One file, no dependencies.">
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+<style>
+:root{
+  color-scheme: light dark;
+  --bg:light-dark(#F7F7F4,#15171C); --panel:light-dark(#FFFFFF,#1E2128);
+  --ink:light-dark(#1C1F26,#ECEEF2); --muted:light-dark(#5E6470,#9AA1AD);
+  --line:light-dark(#D5D8DE,#343946);
+  --accent:light-dark(#1B6CA8,#5AA6E8); --accent-ink:light-dark(#fff,#0f1115);
+  --row-on:light-dark(#EEF6E9,#233426);
+  --err-bg:light-dark(#FDECEC,#3A1F1F); --err-ink:light-dark(#8A1C1C,#FFB4B4);
+  --code-bg:light-dark(#F0F1F3,#262A33);
+}
+:root[data-theme="light"]{color-scheme:light}
+:root[data-theme="dark"]{color-scheme:dark}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.45;padding:20px 16px 32px}
+.wrap{max-width:1060px;margin:0 auto}
+h1{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:22px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
+.sub{color:var(--muted);margin:0 0 18px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:14px;min-width:0}
+.lab{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;margin:0 0 8px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.row + .row{margin-top:10px}
+button,select,input[type=text]{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:7px 11px;cursor:pointer;max-width:100%}
+button:hover{border-color:var(--ink)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button:disabled{opacity:.5;cursor:not-allowed}
+input[type=text]{cursor:text;width:100%;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:16px;padding:9px 12px}
+.eqrow{display:flex;gap:8px;align-items:center}
+.eqrow input{flex:1;min-width:0}
+.palette{display:flex;flex-wrap:wrap;gap:6px}
+.palette button{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:16px;padding:4px 0;min-width:40px;line-height:1.3}
+.hint{color:var(--muted);font-size:12px;margin:8px 0 0}
+.err{display:none;margin-top:10px;padding:10px 12px;border-radius:6px;background:var(--err-bg);color:var(--err-ink);font-size:13px;white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.err.show{display:block}
+label.chk{display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
+.diagram{background:#fff;border:1px solid var(--line);border-radius:6px;padding:8px;overflow:auto}
+.diagram svg{display:block;max-width:100%;height:auto;margin:0 auto}
+.legend{margin-top:10px;font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 16px}
+.legend b{color:var(--ink);font-weight:600}
+.legend .note{flex-basis:100%}
+.tablewrap{overflow-x:auto}
+table.tt{border-collapse:collapse;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;min-width:200px}
+table.tt th,table.tt td{border:1px solid var(--line);padding:4px 10px;text-align:center;white-space:nowrap}
+table.tt th{background:var(--code-bg);font-weight:600}
+table.tt th.out,table.tt td.out{font-weight:700;border-left:2px solid var(--ink)}
+table.tt tr.on td{background:var(--row-on)}
+table.tt.hide-mid .mid{display:none}
+table.tt td.mid,table.tt th.mid{color:var(--muted)}
+table.tt th.mid{font-weight:500}
+details{margin-bottom:14px}
+summary{cursor:pointer;font-weight:600}
+table.syn{border-collapse:collapse;margin-top:10px;font-size:13px}
+table.syn th,table.syn td{border:1px solid var(--line);padding:5px 10px;text-align:left;vertical-align:top}
+table.syn th{background:var(--code-bg)}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--code-bg);padding:1px 5px;border-radius:4px;font-size:.93em}
+footer{color:var(--muted);font-size:12px;margin-top:8px}
+footer a,.panel a{color:var(--accent)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.show{opacity:1}
+#testbox{display:none;margin-bottom:14px;padding:10px 12px;border-radius:6px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;white-space:pre-wrap;border:1px solid var(--line);background:var(--code-bg)}
+#testbox.show{display:block}
+#testbox.fail{background:var(--err-bg);color:var(--err-ink)}
+@media (max-width:560px){
+  body{padding:16px 16px 28px}
+  .eqrow{flex-direction:column;align-items:stretch}
+  .palette button{min-width:34px}
+}
+</style>
+<script>
+// Honour a theme pinned on the main site (the [data-theme] rules above);
+// otherwise follow the operating system. Runs before first paint.
+{
+  let theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  try {
+    const saved = localStorage.getItem("theme");
+    if (saved === "light" || saved === "dark") theme = saved;
+  } catch { /* storage blocked — fall back to the system preference */ }
+  document.documentElement.dataset.theme = theme;
+}
+</script>
+</head>
+<body>
+<div class="wrap">
+  <h1>Logic Diagram Tool</h1>
+  <p class="sub">Type a Boolean equation with up to 4 inputs and get the gate diagram and truth table.</p>
+
+  <div id="testbox" role="status"></div>
+
+  <div class="panel">
+    <p class="lab">Equation</p>
+    <div class="eqrow">
+      <input type="text" id="eq" spellcheck="false" autocomplete="off" autocapitalize="characters" placeholder="e.g. Y = (A·C) + (B·D)" aria-label="Boolean equation">
+      <select id="examples" aria-label="Examples">
+        <option value="">Examples…</option>
+        <option value="Y1 = (A·C) + (B·D)">Y1 = (A·C) + (B·D)</option>
+        <option value="Y2 = ((A'+C')(B'+D'))'">Y2 = ((A'+C')(B'+D'))'</option>
+        <option value="Y3 = (A⊕C)·(B⊕D)">Y3 = (A⊕C)·(B⊕D)</option>
+        <option value="Y0 = A'·B + C'·D">Y0 = A'·B + C'·D</option>
+      </select>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <div class="palette" id="palette" aria-label="Symbol palette">
+        <button type="button" data-ins="·" title="AND">·</button>
+        <button type="button" data-ins="+" title="OR">+</button>
+        <button type="button" data-ins="'" title="NOT (postfix)">'</button>
+        <button type="button" data-ins="⊕" title="XOR">⊕</button>
+        <button type="button" data-ins="(" title="Open parenthesis">(</button>
+        <button type="button" data-ins=")" title="Close parenthesis">)</button>
+      </div>
+    </div>
+    <div id="err" class="err" role="alert"></div>
+    <p class="hint">Inputs A–D, constants 0 and 1. Precedence: NOT, AND, XOR, OR. A NOT applied directly to an AND/OR/XOR group is drawn as one NAND/NOR/XNOR gate.</p>
+  </div>
+
+  <div class="panel">
+    <div class="row" style="justify-content:space-between">
+      <p class="lab" style="margin:0">Diagram</p>
+      <div class="row">
+        <label class="chk"><input type="checkbox" id="showLabels" checked> Show intermediate labels</label>
+        <button type="button" id="dlSvg">Download SVG</button>
+        <button type="button" id="dlPng" class="primary">Download PNG</button>
+      </div>
+    </div>
+    <div class="diagram" id="diagram" style="margin-top:10px"></div>
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <div class="panel">
+    <div class="row" style="justify-content:space-between">
+      <p class="lab" style="margin:0">Truth table</p>
+      <div class="row">
+        <label class="chk"><input type="checkbox" id="showMid" checked> Show intermediate columns</label>
+        <button type="button" id="cpMd">Copy as Markdown</button>
+        <button type="button" id="cpCsv">Copy as CSV</button>
+        <button type="button" id="dlTt">Download truth table PNG</button>
+      </div>
+    </div>
+    <div class="tablewrap" id="truth" style="margin-top:10px"></div>
+  </div>
+
+  <details class="panel">
+    <summary>Syntax help</summary>
+    <table class="syn">
+      <tr><th>Operation</th><th>Accepted notation</th></tr>
+      <tr><td>AND</td><td><code>A·B</code>, <code>A*B</code>, <code>AB</code> (implicit), <code>A AND B</code>, <code>A&amp;B</code>, <code>A∧B</code></td></tr>
+      <tr><td>OR</td><td><code>A+B</code>, <code>A OR B</code>, <code>A|B</code>, <code>A∨B</code></td></tr>
+      <tr><td>NOT</td><td><code>A'</code> (postfix), <code>!A</code>, <code>~A</code>, <code>NOT A</code>, <code>¬A</code></td></tr>
+      <tr><td>XOR</td><td><code>A⊕B</code>, <code>A^B</code>, <code>A XOR B</code></td></tr>
+      <tr><td>NAND / NOR / XNOR</td><td><code>(A·B)'</code>, <code>(A+B)'</code>, <code>(A⊕B)'</code> — drawn as one gate with an output bubble. Also <code>A NAND B</code>, <code>A NOR B</code>, <code>A XNOR B</code>.</td></tr>
+      <tr><td>Grouping</td><td>Parentheses <code>( )</code></td></tr>
+      <tr><td>Output name</td><td>Optional <code>Y = …</code> or <code>Y2 = …</code> before the expression (default <code>Y</code>)</td></tr>
+      <tr><td>Precedence</td><td>NOT, then AND, then XOR, then OR (highest to lowest), left-associative. <code>A·B·C</code> is one 3-input gate; gates take 2–4 inputs.</td></tr>
+    </table>
+  </details>
+
+  <footer>Built for CS 4141 · <a href="https://github.com/ahmet-keles/ahmet-keles.github.io/blob/main/logic/index.html">Source on GitHub</a></footer>
+</div>
+<div class="toast" id="toast" aria-live="polite"></div>
+
+<script>
+'use strict';
+/* =============================================================================
+   Logic Diagram Tool — single file, no dependencies.
+   Sections:
+     1. Tokenizer          text → tokens
+     2. Parser             tokens → AST (recursive descent)
+     3. Simplifier         NOT(AND) → NAND etc., flatten chains to n-input gates
+     4. Circuit (DAG)      shared sub-expressions, evaluation order
+     5. Layout             columns (ALAP) + rows (tree layout)
+     6. Wire router        orthogonal grid router (Dijkstra) with junction dots
+     7. SVG renderer       ANSI/IEEE gate symbols, black on white
+     8. Truth table        HTML table, Markdown, CSV, PNG
+     9. Export             SVG / PNG download
+    10. Self-tests         ?test=1
+    11. UI wiring
+   ============================================================================= */
+
+/* ---------------------------------------------------------------------------
+   1. TOKENIZER
+   --------------------------------------------------------------------------- */
+class ParseError extends Error {
+  constructor(message, pos, len) { super(message); this.pos = pos; this.len = len || 1; }
+}
+
+const KEYWORDS = { AND: 'and', OR: 'or', NOT: 'not', XOR: 'xor', NAND: 'nand', NOR: 'nor', XNOR: 'xnor' };
+const CHAR_OPS = {
+  '·': 'and', '*': 'and', '&': 'and', '∧': 'and', '.': 'and', '×': 'and', '∙': 'and', '⋅': 'and',
+  '+': 'or', '|': 'or', '∨': 'or',
+  '⊕': 'xor', '^': 'xor', '⊻': 'xor',
+  "'": 'post', '′': 'post', '’': 'post', '‾': 'post', '¯': 'post', '̄': 'post', '̅': 'post',
+  '!': 'not', '~': 'not', '¬': 'not',
+  '(': 'lp', '[': 'lp', '{': 'lp', ')': 'rp', ']': 'rp', '}': 'rp'
+};
+
+function tokenize(src, offset) {
+  const toks = [];
+  let i = 0;
+  while (i < src.length) {
+    const ch = src[i];
+    if (/\s/.test(ch)) { i++; continue; }
+    if (/[A-Za-z]/.test(ch)) {
+      let j = i;
+      while (j < src.length && /[A-Za-z]/.test(src[j])) j++;
+      const word = src.slice(i, j).toUpperCase();
+      if (KEYWORDS[word]) { toks.push({ type: KEYWORDS[word], text: src.slice(i, j), pos: offset + i, len: j - i }); i = j; continue; }
+      for (let k = i; k < j; k++) {
+        const c = src[k].toUpperCase();
+        if (c < 'A' || c > 'D') throw new ParseError(`Unknown symbol '${src[k]}' — inputs must be A, B, C or D`, offset + k);
+        toks.push({ type: 'var', name: c, text: src[k], pos: offset + k, len: 1 });
+      }
+      i = j; continue;
+    }
+    if (ch === '0' || ch === '1') { toks.push({ type: 'const', value: +ch, text: ch, pos: offset + i, len: 1 }); i++; continue; }
+    if (/[0-9]/.test(ch)) throw new ParseError('Constants must be 0 or 1', offset + i);
+    if ((ch === '&' || ch === '|') && src[i + 1] === ch) { toks.push({ type: ch === '&' ? 'and' : 'or', text: ch + ch, pos: offset + i, len: 2 }); i += 2; continue; }
+    const op = CHAR_OPS[ch];
+    if (op) { toks.push({ type: op, text: ch, pos: offset + i, len: 1 }); i++; continue; }
+    throw new ParseError(`Unexpected character '${ch}'`, offset + i);
+  }
+  return toks;
+}
+
+/* ---------------------------------------------------------------------------
+   2. PARSER (recursive descent)
+   Grammar (lowest → highest precedence):
+     or   := xor  ( (OR | NOR)   xor  )*
+     xor  := and  ( (XOR | XNOR) and  )*
+     and  := unary( (AND | NAND | <implicit>) unary )*
+     unary:= NOT unary | postfix
+     postfix := primary ( ' )*
+     primary := VAR | CONST | '(' or ')'
+   AST nodes: {type:'var',name} {type:'const',value} {type:'not',arg} {type:'and'|'or'|'xor',args:[l,r]}
+   --------------------------------------------------------------------------- */
+function parseEquation(input) {
+  let name = 'Y', expr = input, exprStart = 0;
+  const eq = input.indexOf('=');
+  if (eq >= 0) {
+    const left = input.slice(0, eq), lt = left.trim();
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(lt)) {
+      const p = Math.max(0, left.search(/\S/));
+      throw new ParseError('The output name before "=" must be a simple name like Y or Y2', p, Math.max(1, lt.length));
+    }
+    name = lt; expr = input.slice(eq + 1); exprStart = eq + 1;
+    const eq2 = expr.indexOf('=');
+    if (eq2 >= 0) throw new ParseError('Only one "=" is allowed', exprStart + eq2);
+  }
+  const toks = tokenize(expr, exprStart);
+  const endPos = exprStart + expr.replace(/\s+$/, '').length;
+  if (!toks.length) throw new ParseError('Expression is empty', endPos);
+
+  let i = 0;
+  const peek = () => toks[i];
+  const next = () => toks[i++];
+  const at = (t) => t ? `at position ${t.pos + 1}` : 'at the end of the expression';
+
+  function parseOr() {
+    let node = parseXor();
+    while (peek() && (peek().type === 'or' || peek().type === 'nor')) {
+      const op = next();
+      const rhs = parseXor();
+      node = { type: 'or', args: [node, rhs] };
+      if (op.type === 'nor') node = { type: 'not', arg: node };
+    }
+    return node;
+  }
+  function parseXor() {
+    let node = parseAnd();
+    while (peek() && (peek().type === 'xor' || peek().type === 'xnor')) {
+      const op = next();
+      const rhs = parseAnd();
+      node = { type: 'xor', args: [node, rhs] };
+      if (op.type === 'xnor') node = { type: 'not', arg: node };
+    }
+    return node;
+  }
+  function parseAnd() {
+    let node = parseUnary();
+    for (;;) {
+      const t = peek();
+      if (!t) break;
+      if (t.type === 'and' || t.type === 'nand') {
+        next();
+        const rhs = parseUnary();
+        node = { type: 'and', args: [node, rhs] };
+        if (t.type === 'nand') node = { type: 'not', arg: node };
+      } else if (t.type === 'var' || t.type === 'const' || t.type === 'lp' || t.type === 'not') {
+        node = { type: 'and', args: [node, parseUnary()] };   // implicit multiplication
+      } else break;
+    }
+    return node;
+  }
+  function parseUnary() {
+    const t = peek();
+    if (t && t.type === 'not') { next(); return { type: 'not', arg: parseUnary() }; }
+    return parsePostfix();
+  }
+  function parsePostfix() {
+    let node = parsePrimary();
+    while (peek() && peek().type === 'post') { next(); node = { type: 'not', arg: node }; }
+    return node;
+  }
+  function parsePrimary() {
+    const t = next();
+    if (!t) throw new ParseError('Unexpected end of expression — expected a variable, constant or "("', endPos);
+    if (t.type === 'var') return { type: 'var', name: t.name };
+    if (t.type === 'const') return { type: 'const', value: t.value };
+    if (t.type === 'lp') {
+      const node = parseOr();
+      const c = next();
+      if (!c) throw new ParseError(`Missing ")" for the "(" at position ${t.pos + 1}`, endPos);
+      if (c.type !== 'rp') throw new ParseError(`Expected ")" but found '${c.text}' ${at(c)}`, c.pos, c.len);
+      return node;
+    }
+    if (t.type === 'rp') throw new ParseError(`Unexpected ")" ${at(t)}`, t.pos);
+    if (t.type === 'post') throw new ParseError(`"'" must follow a variable or a closing parenthesis ${at(t)}`, t.pos);
+    throw new ParseError(`Unexpected operator '${t.text}' ${at(t)} — expected a variable, constant or "("`, t.pos, t.len);
+  }
+
+  const ast = parseOr();
+  if (i < toks.length) {
+    const t = toks[i];
+    throw new ParseError(`Unexpected '${t.text}' ${at(t)}`, t.pos, t.len);
+  }
+  return { name, ast };
+}
+
+/* ---------------------------------------------------------------------------
+   3. SIMPLIFIER
+   - collapses NOT over AND/OR/XOR into NAND/NOR/XNOR (and back for double NOT)
+   - flattens associative chains into n-input gates (max 4 inputs per gate)
+   --------------------------------------------------------------------------- */
+const MAX_FANIN = 4;
+const NEGATED = { and: 'nand', or: 'nor', xor: 'xnor' };
+const UNNEGATED = { nand: 'and', nor: 'or', xnor: 'xor' };
+const GATE_TYPES = ['not', 'and', 'or', 'xor', 'nand', 'nor', 'xnor'];
+
+function simplify(n) {
+  switch (n.type) {
+    case 'var': case 'const': return n;
+    case 'not': {
+      const a = simplify(n.arg);
+      if (a.type === 'not') return a.arg;
+      if (a.type === 'const') return { type: 'const', value: 1 - a.value };
+      if (NEGATED[a.type]) return { type: NEGATED[a.type], args: a.args };
+      if (UNNEGATED[a.type]) return { type: UNNEGATED[a.type], args: a.args };
+      return { type: 'not', arg: a };
+    }
+    case 'and': case 'or': case 'xor': {
+      const args = [];
+      for (const c of n.args) {
+        const s = simplify(c);
+        if (s.type === n.type) args.push(...s.args); else args.push(s);
+      }
+      return chunkArgs(n.type, args);
+    }
+  }
+  throw new Error('bad node ' + n.type);
+}
+function chunkArgs(type, args) {
+  if (args.length <= MAX_FANIN) return { type, args };
+  const k = Math.ceil(args.length / MAX_FANIN), base = Math.floor(args.length / k), extra = args.length % k;
+  const groups = [];
+  for (let g = 0, i = 0; g < k; g++) { const sz = base + (g < extra ? 1 : 0); groups.push({ type, args: args.slice(i, i + sz) }); i += sz; }
+  return chunkArgs(type, groups);
+}
+
+const PREC = { or: 1, xor: 2, and: 3, not: 4, nand: 4, nor: 4, xnor: 4, var: 5, const: 5 };
+function fmt(n, parentPrec = 0) {
+  let s;
+  switch (n.type) {
+    case 'var': return n.name;
+    case 'const': return String(n.value);
+    case 'not': return (n.arg.type === 'var' || n.arg.type === 'const') ? fmt(n.arg) + "'" : '(' + fmt(n.arg) + ")'";
+    case 'and': s = n.args.map(a => fmt(a, 3)).join('·'); break;
+    case 'xor': s = n.args.map(a => fmt(a, 2)).join('⊕'); break;
+    case 'or': s = n.args.map(a => fmt(a, 1)).join('+'); break;
+    case 'nand': return '(' + n.args.map(a => fmt(a, 3)).join('·') + ")'";
+    case 'nor': return '(' + n.args.map(a => fmt(a, 1)).join('+') + ")'";
+    case 'xnor': return '(' + n.args.map(a => fmt(a, 2)).join('⊕') + ")'";
+  }
+  return PREC[n.type] < parentPrec ? '(' + s + ')' : s;
+}
+
+/* ---------------------------------------------------------------------------
+   4. CIRCUIT — a DAG with shared sub-expressions, nodes in evaluation order
+   --------------------------------------------------------------------------- */
+function buildCircuit(ast) {
+  const nodes = [], byKey = new Map();
+  function intern(n) {
+    const inputs = n.type === 'not' ? [intern(n.arg)] : (n.args ? n.args.map(intern) : []);
+    const key = fmt(n);
+    if (byKey.has(key)) return byKey.get(key);
+    const node = { id: nodes.length, type: n.type, key, label: key, inputs, consumers: [] };
+    if (n.type === 'var') node.name = n.name;
+    if (n.type === 'const') node.value = n.value;
+    nodes.push(node); byKey.set(key, node);
+    inputs.forEach(c => c.consumers.push(node));
+    return node;
+  }
+  const root = intern(ast);
+  const vars = nodes.filter(n => n.type === 'var').sort((a, b) => a.name < b.name ? -1 : 1);
+  const consts = nodes.filter(n => n.type === 'const').sort((a, b) => b.value - a.value);
+  const gates = nodes.filter(n => GATE_TYPES.includes(n.type));
+  return { root, nodes, vars, consts, gates, rails: vars.concat(consts) };
+}
+
+function evalCircuit(circuit, env) {
+  const v = new Array(circuit.nodes.length);
+  for (const n of circuit.nodes) {
+    const a = n.inputs.map(c => v[c.id]);
+    switch (n.type) {
+      case 'var': v[n.id] = env[n.name] ? 1 : 0; break;
+      case 'const': v[n.id] = n.value; break;
+      case 'not': v[n.id] = 1 - a[0]; break;
+      case 'and': v[n.id] = a.every(x => x) ? 1 : 0; break;
+      case 'nand': v[n.id] = a.every(x => x) ? 0 : 1; break;
+      case 'or': v[n.id] = a.some(x => x) ? 1 : 0; break;
+      case 'nor': v[n.id] = a.some(x => x) ? 0 : 1; break;
+      case 'xor': v[n.id] = a.reduce((s, x) => s ^ x, 0); break;
+      case 'xnor': v[n.id] = 1 - a.reduce((s, x) => s ^ x, 0); break;
+    }
+  }
+  return v;
+}
+
+function truthTable(circuit) {
+  const vars = circuit.vars.map(v => v.name);
+  const mids = circuit.gates.filter(g => g !== circuit.root);
+  const rows = [];
+  const n = vars.length, total = 1 << n;
+  for (let r = 0; r < total; r++) {
+    const env = {};
+    vars.forEach((name, k) => { env[name] = (r >> (n - 1 - k)) & 1; });
+    const v = evalCircuit(circuit, env);
+    rows.push({ inputs: vars.map(name => env[name]), mids: mids.map(g => v[g.id]), out: v[circuit.root.id] });
+  }
+  return { vars, mids, rows };
+}
+
+/* ---------------------------------------------------------------------------
+   5. LAYOUT
+   Grid unit = 10 px. Inputs are vertical rails at the far left; gates sit in
+   columns assigned "as late as possible" so each gate is next to its consumer;
+   rows come from a bottom-up tree layout (children stacked, parent centred).
+   --------------------------------------------------------------------------- */
+const U = 10;           // grid unit in px
+const CHANNEL = 6;      // grid cells between columns (routing channel)
+const RAIL_GAP = 3;     // cells between rails
+const TOP = 4;          // first usable row for gates (rows 0-3 are rail labels)
+const GATE_W = { big: 8, not: 4 };   // cells from input pin to output node
+
+function gateHeight(g) { return g.type === 'not' ? 2 : 2 * g.inputs.length; }   // cells
+
+function layoutCircuit(circuit) {
+  const { root, gates, rails } = circuit;
+  const isGate = n => GATE_TYPES.includes(n.type);
+
+  // ASAP depth, then ALAP column
+  const depth = new Map();
+  for (const n of circuit.nodes) depth.set(n, isGate(n) ? 1 + Math.max(...n.inputs.map(c => depth.get(c))) : 0);
+  const col = new Map();
+  const K = depth.get(root);
+  for (let i = circuit.nodes.length - 1; i >= 0; i--) {
+    const n = circuit.nodes[i];
+    if (!isGate(n)) continue;
+    col.set(n, n === root ? K : Math.min(...n.consumers.map(c => col.get(c))) - 1);
+  }
+
+  // rows: bottom-up tree layout (DAG-aware: a shared node is placed once)
+  const cy = new Map();
+  function place(node, top) {
+    if (!isGate(node) || cy.has(node)) return 0;
+    const placedHere = [];
+    let y = top, any = false, prevNot = false;
+    for (const c of node.inputs) {
+      if (!isGate(c) || cy.has(c)) continue;
+      const gap = (prevNot && c.type === 'not') ? 0 : (any ? 2 : 0);
+      y += gap;
+      const before = cy.size;
+      const h = place(c, y);
+      y += h; any = true; prevNot = c.type === 'not';
+      placedHere.push(...[...cy.keys()].slice(before));
+    }
+    const childrenH = any ? y - top : 0;
+    const bodyH = gateHeight(node);
+    const H = Math.max(bodyH, childrenH);
+    if (childrenH < bodyH) { const d = (bodyH - childrenH) / 2; for (const p of placedHere) cy.set(p, cy.get(p) + d); }
+    cy.set(node, top + H / 2);
+    return H;
+  }
+  const treeH = place(root, TOP);
+
+  // column x positions (cells)
+  const colBig = {};
+  for (const g of gates) if (g.type !== 'not') colBig[col.get(g)] = true;
+  const railX = rails.map((_, i) => 2 + i * RAIL_GAP);
+  const railsRight = rails.length ? railX[railX.length - 1] : 2;
+  const pinX = [0];
+  let x = railsRight + CHANNEL;
+  for (let c = 1; c <= K; c++) { pinX[c] = x; x += (colBig[c] ? GATE_W.big : GATE_W.not) + CHANNEL; }
+
+  const geo = new Map();
+  for (const g of gates) {
+    const c = col.get(g), n = g.inputs.length, h = gateHeight(g);
+    const px = pinX[c], w = colBig[c] ? GATE_W.big : GATE_W.not;
+    const center = cy.get(g);
+    geo.set(g, {
+      col: c, pinX: px, x0: px + 1, outX: px + w, cy: center, h,
+      top: center - h / 2, bot: center + h / 2,
+      pins: g.inputs.map((_, i) => center + (i - (n - 1) / 2) * 2)
+    });
+  }
+  const railGeo = new Map(rails.map((r, i) => [r, { x: railX[i] }]));
+
+  // output wire target
+  let outTarget;
+  if (isGate(root)) { const g = geo.get(root); outTarget = { x: g.outX + 3, y: g.cy }; }
+  else outTarget = { x: railsRight + CHANNEL, y: TOP + 1 };
+
+  const GW = outTarget.x + 5, GH = Math.max(TOP + treeH, outTarget.y) + 3;
+  return { geo, railGeo, outTarget, GW, GH, K };
+}
+
+/* ---------------------------------------------------------------------------
+   6. WIRE ROUTER — orthogonal, on the grid, Dijkstra per pin.
+   Each net (a rail or a gate output) is a tree; later pins branch off the
+   existing tree, which is where junction dots come from. Different nets may
+   cross perpendicularly (no dot) but never share an edge.
+   --------------------------------------------------------------------------- */
+class MinHeap {
+  constructor() { this.a = []; }
+  push(k, v) { const a = this.a; a.push([k, v]); let i = a.length - 1; while (i > 0) { const p = (i - 1) >> 1; if (a[p][0] <= a[i][0]) break; [a[p], a[i]] = [a[i], a[p]]; i = p; } }
+  pop() { const a = this.a, top = a[0], last = a.pop(); if (a.length) { a[0] = last; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let m = i; if (l < a.length && a[l][0] < a[m][0]) m = l; if (r < a.length && a[r][0] < a[m][0]) m = r; if (m === i) break; [a[m], a[i]] = [a[i], a[m]]; i = m; } } return top; }
+  get size() { return this.a.length; }
+}
+
+function routeCircuit(circuit, L) {
+  const { GW, GH, geo, railGeo, outTarget } = L;
+  const N = GW * GH;
+  const idx = (x, y) => y * GW + x;
+  const kind = new Uint8Array(N);          // 0 free, 1 blocked, 2 pin, 3 out
+  const kindNet = new Int32Array(N).fill(-1);
+  const hEdge = new Int32Array(N).fill(-1); // edge (x,y)-(x+1,y) owner net
+  const vEdge = new Int32Array(N).fill(-1); // edge (x,y)-(x,y+1) owner net
+  const fallbacks = [];
+
+  for (let x = 0; x < GW; x++) for (let y = 0; y < TOP - 1; y++) kind[idx(x, y)] = 1;   // label band
+  for (const [g, G] of geo) {
+    for (let x = G.x0; x < G.outX; x++) for (let y = G.top; y <= G.bot; y++) kind[idx(x, y)] = 1;
+    for (let y = G.top; y <= G.bot; y++) kind[idx(G.pinX, y)] = 1;
+    G.pins.forEach((py, i) => { const k = idx(G.pinX, py); kind[k] = 2; kindNet[k] = g.inputs[i].id; });
+    const o = idx(G.outX, G.cy); kind[o] = 3; kindNet[o] = g.id;
+  }
+  // rails: initial tree = full vertical line
+  for (const [r, R] of railGeo) for (let y = TOP - 1; y < GH - 1; y++) vEdge[idx(R.x, y)] = r.id;
+
+  const DX = [-1, 1, 0, 0], DY = [0, 0, -1, 1];   // L R U D
+  function edgeOwner(x, y, d) { // edge from (x,y) in direction d
+    if (d === 0) return hEdge[idx(x - 1, y)];
+    if (d === 1) return hEdge[idx(x, y)];
+    if (d === 2) return vEdge[idx(x, y - 1)];
+    return vEdge[idx(x, y)];
+  }
+  function setEdge(x, y, d, net) {
+    if (d === 0) hEdge[idx(x - 1, y)] = net;
+    else if (d === 1) hEdge[idx(x, y)] = net;
+    else if (d === 2) vEdge[idx(x, y - 1)] = net;
+    else vEdge[idx(x, y)] = net;
+  }
+  function edgesAt(x, y) {
+    const e = [];
+    for (let d = 0; d < 4; d++) { const nx = x + DX[d], ny = y + DY[d]; if (nx < 0 || ny < 0 || nx >= GW || ny >= GH) continue; const o = edgeOwner(x, y, d); if (o >= 0) e.push({ d, net: o }); }
+    return e;
+  }
+
+  function route(net, target, forcedStart) {
+    const dist = new Float64Array(N * 5).fill(Infinity);
+    const prev = new Int32Array(N * 5).fill(-1);
+    const heap = new MinHeap();
+    const st = (i, d) => i * 5 + d;
+    // sources: the net's existing tree (nodes touched only by this net)
+    if (forcedStart) { const s = st(idx(forcedStart.x, forcedStart.y), 1); dist[s] = 0; heap.push(0, s); }
+    for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) {
+      const i = idx(x, y);
+      if (kind[i] === 2) continue;
+      const e = edgesAt(x, y);
+      if (!e.length || e.some(q => q.net !== net)) continue;
+      const s = st(i, 4); if (dist[s] > 0) { dist[s] = 0; heap.push(0, s); }
+    }
+    const tIdx = idx(target.x, target.y);
+    let found = -1;
+    while (heap.size) {
+      const [dcur, s] = heap.pop();
+      if (dcur > dist[s]) continue;
+      const i = (s / 5) | 0, dir = s % 5, x = i % GW, y = (i / GW) | 0;
+      if (i === tIdx) { found = s; break; }
+      for (let d = 0; d < 4; d++) {
+        const nx = x + DX[d], ny = y + DY[d];
+        if (nx < 0 || ny < 0 || nx >= GW || ny >= GH) continue;
+        if (edgeOwner(x, y, d) >= 0) continue;
+        const ni = idx(nx, ny);
+        let cost = 1;
+        if (dir !== 4 && dir !== d) cost += 4;
+        if (ni === tIdx) { if (d !== 1) continue; }
+        else {
+          if (kind[ni] !== 0) continue;
+          const e = edgesAt(nx, ny);
+          if (e.length) {
+            if (e.some(q => q.net === net)) continue;
+            if (e.length !== 2) continue;
+            const horiz = e.every(q => q.d <= 1), vert = e.every(q => q.d >= 2);
+            if (!(horiz || vert) || e[0].net !== e[1].net) continue;
+            if (horiz && d <= 1) continue;
+            if (vert && d >= 2) continue;
+            cost += 2;
+          }
+        }
+        const ns = st(ni, d), nd = dcur + cost;
+        if (nd < dist[ns]) { dist[ns] = nd; prev[ns] = s; heap.push(nd, ns); }
+      }
+    }
+    if (found < 0) return false;
+    for (let s = found; prev[s] >= 0; s = prev[s]) {
+      const i = (s / 5) | 0, d = s % 5, x = i % GW, y = (i / GW) | 0;
+      const pd = [1, 0, 3, 2][d];   // opposite direction back to the previous node
+      setEdge(x, y, pd, net);
+    }
+    return true;
+  }
+
+  // routing order: consumer gates by column, pins top to bottom; then output
+  const jobs = [];
+  for (const [g, G] of geo) G.pins.forEach((py, i) => jobs.push({ col: G.col, y: py, src: g.inputs[i], target: { x: G.pinX, y: py } }));
+  jobs.sort((a, b) => a.col - b.col || a.y - b.y);
+  const outNet = circuit.root;
+  jobs.push({ src: outNet, target: outTarget, isOut: true });
+  if (jobs.some(j => j.isOut)) { const ti = idx(outTarget.x, outTarget.y); kind[ti] = 2; kindNet[ti] = outNet.id; }
+
+  for (const j of jobs) {
+    const src = j.src;
+    const start = geo.has(src) ? { x: geo.get(src).outX, y: geo.get(src).cy } : null;
+    const ok = route(src.id, j.target, start);
+    if (!ok) fallbacks.push({ src, target: j.target, start: start || { x: railGeo.get(src).x, y: j.target.y } });
+  }
+
+  // trim rails to their lowest tap
+  for (const [r, R] of railGeo) {
+    let last = TOP - 1;
+    for (let y = TOP - 1; y < GH; y++) if (hEdge[idx(R.x, y)] === r.id) last = y;
+    for (let y = last; y < GH - 1; y++) if (vEdge[idx(R.x, y)] === r.id) vEdge[idx(R.x, y)] = -1;
+  }
+
+  // collect straight runs and junction dots
+  const runs = [], dots = [];
+  for (let y = 0; y < GH; y++) { let x = 0; while (x < GW - 1) { const o = hEdge[idx(x, y)]; if (o < 0) { x++; continue; } let x2 = x; while (x2 < GW - 1 && hEdge[idx(x2, y)] === o) x2++; runs.push({ x1: x, y1: y, x2, y2: y }); x = x2; } }
+  for (let x = 0; x < GW; x++) { let y = 0; while (y < GH - 1) { const o = vEdge[idx(x, y)]; if (o < 0) { y++; continue; } let y2 = y; while (y2 < GH - 1 && vEdge[idx(x, y2)] === o) y2++; runs.push({ x1: x, y1: y, x2: x, y2 }); y = y2; } }
+  for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) {
+    const e = edgesAt(x, y); if (e.length < 3) continue;
+    const byNet = {}; for (const q of e) byNet[q.net] = (byNet[q.net] || 0) + 1;
+    for (const k in byNet) if (byNet[k] >= 3) dots.push({ x, y });
+  }
+  // first horizontal run out of each gate output (for label placement)
+  const outRun = new Map();
+  for (const [g, G] of geo) { let x = G.outX; while (x < GW - 1 && hEdge[idx(x, G.cy)] === g.id) x++; outRun.set(g, x - G.outX); }
+  return { runs, dots, fallbacks, outRun };
+}
+
+/* ---------------------------------------------------------------------------
+   7. SVG RENDERER — ANSI/IEEE symbols, 2 px black strokes, white fill
+   --------------------------------------------------------------------------- */
+const FONT = 'Helvetica, Arial, sans-serif';
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+function gateSymbol(g, G) {
+  const x0 = G.x0 * U, cy = G.cy * U, outX = G.outX * U, pinX = G.pinX * U;
+  const S = 'stroke="#000" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"';
+  let s = '';
+  if (g.type === 'not') {
+    s += `<line x1="${pinX}" y1="${cy}" x2="${x0 + 1}" y2="${cy}" ${S}/>`;
+    s += `<line x1="${x0 + 24}" y1="${cy}" x2="${outX}" y2="${cy}" ${S}/>`;
+    s += `<path d="M${x0},${cy - 10} L${x0 + 17},${cy} L${x0},${cy + 10} Z" fill="#fff" ${S}/>`;
+    s += `<circle cx="${x0 + 21}" cy="${cy}" r="4" fill="#fff" ${S}/>`;
+    return s;
+  }
+  const top = G.top * U, bot = G.bot * U, h = bot - top, w = 50;
+  const base = UNNEGATED[g.type] || g.type, bubble = !!UNNEGATED[g.type];
+  const inset = base === 'and' ? 1 : 12;
+  for (const py of G.pins) s += `<line x1="${pinX}" y1="${py * U}" x2="${x0 + inset}" y2="${py * U}" ${S}/>`;
+  s += `<line x1="${x0 + w - 1}" y1="${cy}" x2="${outX}" y2="${cy}" ${S}/>`;
+  if (base === 'and') {
+    const rx = Math.min(h / 2, 30), ry = h / 2, flat = w - rx;
+    s += `<path d="M${x0},${top} H${x0 + flat} A${rx},${ry} 0 0 1 ${x0 + flat},${bot} H${x0} Z" fill="#fff" ${S}/>`;
+  } else {
+    if (base === 'xor') s += `<path d="M${x0 - 6},${top} Q${x0 + 6},${cy} ${x0 - 6},${bot}" fill="none" ${S}/>`;
+    s += `<path d="M${x0},${top} Q${x0 + 32},${top} ${x0 + w},${cy} Q${x0 + 32},${bot} ${x0},${bot} Q${x0 + 12},${cy} ${x0},${top} Z" fill="#fff" ${S}/>`;
+  }
+  if (bubble) s += `<circle cx="${x0 + w + 5}" cy="${cy}" r="5" fill="#fff" ${S}/>`;
+  return s;
+}
+
+function renderSVG(circuit, name, opts = {}) {
+  const L = layoutCircuit(circuit);
+  const R = routeCircuit(circuit, L);
+  const W = L.GW * U, H = L.GH * U;
+  const S = 'stroke="#000" stroke-width="2" stroke-linecap="square"';
+  let wires = '', gates = '', dots = '', labels = '';
+  for (const r of R.runs) wires += `<line x1="${r.x1 * U}" y1="${r.y1 * U}" x2="${r.x2 * U}" y2="${r.y2 * U}" ${S}/>`;
+  for (const f of R.fallbacks) {   // should never happen; keeps the diagram honest if it does
+    wires += `<polyline points="${f.start.x * U},${f.start.y * U} ${f.target.x * U},${f.start.y * U} ${f.target.x * U},${f.target.y * U}" fill="none" stroke="#000" stroke-width="2" stroke-dasharray="4 3"/>`;
+  }
+  for (const [g, G] of L.geo) gates += gateSymbol(g, G);
+  for (const d of R.dots) dots += `<circle cx="${d.x * U}" cy="${d.y * U}" r="3.5" fill="#000"/>`;
+  for (const [r, G] of L.railGeo) labels += `<text x="${G.x * U}" y="${(TOP - 2) * U + 3}" text-anchor="middle" font-family="${FONT}" font-size="14" font-weight="bold">${esc(r.label)}</text>`;
+  labels += `<text x="${L.outTarget.x * U + 6}" y="${L.outTarget.y * U + 5}" font-family="${FONT}" font-size="14" font-weight="bold">${esc(name)}</text>`;
+  let mid = '';
+  for (const [g, G] of L.geo) {
+    if (g === circuit.root) continue;
+    // above the output wire when it has room, otherwise centred above the gate body
+    const textW = g.label.length * 5.6 + 6, run = R.outRun.get(g) * U;
+    const pos = run >= textW ? { x: G.outX * U + 3, y: G.cy * U - 5, a: 'start' }
+                             : { x: (G.x0 + (g.type === 'not' ? 1 : 2.5)) * U, y: G.top * U - 4, a: 'middle' };
+    mid += `<text x="${pos.x}" y="${pos.y}" text-anchor="${pos.a}" font-family="${FONT}" font-size="10" fill="#000" stroke="#fff" stroke-width="3" paint-order="stroke">${esc(g.label)}</text>`;
+  }
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="${FONT}">` +
+    `<rect width="${W}" height="${H}" fill="#fff"/>` +
+    `<g class="wires">${wires}</g><g class="gates">${gates}</g><g class="dots">${dots}</g><g class="labels">${labels}</g>` +
+    `<g class="mid"${opts.showLabels === false ? ' display="none"' : ''}>${mid}</g></svg>`;
+  return { svg, W, H, fallbacks: R.fallbacks.length };
+}
+
+/* ---------------------------------------------------------------------------
+   8. TRUTH TABLE — HTML, Markdown, CSV, PNG
+   --------------------------------------------------------------------------- */
+function tableHTML(tt, name, showMid) {
+  let h = `<table class="tt${showMid ? '' : ' hide-mid'}"><thead><tr>`;
+  for (const v of tt.vars) h += `<th>${v}</th>`;
+  for (const m of tt.mids) h += `<th class="mid">${esc(m.label)}</th>`;
+  h += `<th class="out">${esc(name)}</th></tr></thead><tbody>`;
+  for (const r of tt.rows) {
+    h += `<tr${r.out ? ' class="on"' : ''}>`;
+    for (const x of r.inputs) h += `<td>${x}</td>`;
+    for (const x of r.mids) h += `<td class="mid">${x}</td>`;
+    h += `<td class="out">${r.out}</td></tr>`;
+  }
+  return h + '</tbody></table>';
+}
+function tableColumns(tt, name, showMid) {
+  const head = tt.vars.concat(showMid ? tt.mids.map(m => m.label) : [], [name]);
+  const rows = tt.rows.map(r => r.inputs.concat(showMid ? r.mids : [], [r.out]));
+  return { head, rows };
+}
+function tableMarkdown(tt, name, showMid) {
+  const { head, rows } = tableColumns(tt, name, showMid);
+  const cell = s => String(s).replace(/\|/g, '\\|');
+  return ['| ' + head.map(cell).join(' | ') + ' |', '|' + head.map(() => ' :---: ').join('|') + '|']
+    .concat(rows.map(r => '| ' + r.join(' | ') + ' |')).join('\n');
+}
+function tableCSV(tt, name, showMid) {
+  const { head, rows } = tableColumns(tt, name, showMid);
+  const cell = s => /[",\n]/.test(String(s)) ? '"' + String(s).replace(/"/g, '""') + '"' : String(s);
+  return [head.map(cell).join(',')].concat(rows.map(r => r.join(','))).join('\n');
+}
+function tablePNG(tt, name, showMid, scale = 2) {
+  const { head, rows } = tableColumns(tt, name, showMid);
+  const cv = document.createElement('canvas'), ctx = cv.getContext('2d');
+  const font = '14px ' + FONT, pad = 12, rowH = 26, outCol = head.length - 1;
+  ctx.font = 'bold ' + font;
+  const widths = head.map(hd => ctx.measureText(hd).width + pad * 2);
+  ctx.font = font;
+  rows.forEach(r => r.forEach((c, i) => { widths[i] = Math.max(widths[i], ctx.measureText(String(c)).width + pad * 2); }));
+  const W = widths.reduce((a, b) => a + b, 0) + 2, H = rowH * (rows.length + 1) + 2;
+  cv.width = W * scale; cv.height = H * scale; ctx.scale(scale, scale);
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+  ctx.translate(1, 1);
+  ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
+  // header background + row highlights
+  ctx.fillStyle = '#ececec'; ctx.fillRect(0, 0, W - 2, rowH);
+  ctx.fillStyle = '#eef6e9';
+  rows.forEach((r, ri) => { if (r[outCol]) ctx.fillRect(0, rowH * (ri + 1), W - 2, rowH); });
+  // grid
+  ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+  for (let ri = 0; ri <= rows.length + 1; ri++) { const y = ri * rowH + .5; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W - 2, y); ctx.stroke(); }
+  let x = 0;
+  widths.forEach((w, i) => { const xx = x + .5; ctx.beginPath(); ctx.moveTo(xx, 0); ctx.lineTo(xx, H - 2); ctx.stroke(); if (i === outCol) { ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H - 2); ctx.stroke(); ctx.lineWidth = 1; } x += w; });
+  ctx.beginPath(); ctx.moveTo(W - 2 + .5, 0); ctx.lineTo(W - 2 + .5, H - 2); ctx.stroke();
+  // text
+  ctx.fillStyle = '#000';
+  x = 0;
+  head.forEach((hd, i) => { ctx.font = 'bold ' + font; ctx.fillText(hd, x + widths[i] / 2, rowH / 2); x += widths[i]; });
+  rows.forEach((r, ri) => { x = 0; r.forEach((c, i) => { ctx.font = (i === outCol ? 'bold ' : '') + font; ctx.fillText(String(c), x + widths[i] / 2, rowH * (ri + 1) + rowH / 2); x += widths[i]; }); });
+  return cv;
+}
+
+/* ---------------------------------------------------------------------------
+   9. EXPORT
+   --------------------------------------------------------------------------- */
+function downloadBlob(blob, filename) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+function svgToPngBlob(svgText, W, H, scale = 2) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' }));
+    img.onload = () => {
+      const cv = document.createElement('canvas');
+      cv.width = W * scale; cv.height = H * scale;
+      const ctx = cv.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
+      ctx.drawImage(img, 0, 0, cv.width, cv.height);
+      URL.revokeObjectURL(url);
+      cv.toBlob(b => b ? resolve(b) : reject(new Error('PNG encoding failed')), 'image/png');
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not rasterise the SVG')); };
+    img.src = url;
+  });
+}
+const safeName = s => (s || 'Y').replace(/[^A-Za-z0-9_-]+/g, '_');
+
+/* ---------------------------------------------------------------------------
+   10. SELF-TESTS  (open ?test=1)
+   --------------------------------------------------------------------------- */
+function compile(input) {
+  const { name, ast } = parseEquation(input);
+  const simp = simplify(ast);
+  const circuit = buildCircuit(simp);
+  return { name, ast, simp, circuit, str: fmt(simp) };
+}
+function ttString(circuit) { return truthTable(circuit).rows.map(r => r.out).join(''); }
+function fullTT(input) {  // truth table over A,B,C,D regardless of which inputs are used
+  const c = compile(input).circuit; let s = '';
+  for (let r = 0; r < 16; r++) { const env = { A: (r >> 3) & 1, B: (r >> 2) & 1, C: (r >> 1) & 1, D: r & 1 }; s += evalCircuit(c, env)[c.root.id]; }
+  return s;
+}
+function runSelfTests() {
+  const results = [];
+  const t = (label, fn) => { try { const r = fn(); results.push({ label, ok: r === true, detail: r === true ? '' : String(r) }); } catch (e) { results.push({ label, ok: false, detail: e.message }); } };
+  const eq = (a, b) => a === b ? true : `expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`;
+  const shape = n => n.type === 'var' ? n.name : n.type === 'const' ? String(n.value) : n.type === 'not' ? `not(${shape(n.arg)})` : `${n.type}(${n.args.map(shape).join(',')})`;
+
+  // parser + simplifier output for the four preloaded examples
+  t('Y1 parses to or(and(A,C),and(B,D))', () => eq(shape(compile('Y1 = (A·C) + (B·D)').simp), 'or(and(A,C),and(B,D))'));
+  t('Y1 output name', () => eq(compile('Y1 = (A·C) + (B·D)').name, 'Y1'));
+  t('Y2 parses to a single NAND of two ORs', () => eq(shape(compile("Y2 = ((A'+C')(B'+D'))'").simp), 'nand(or(not(A),not(C)),or(not(B),not(D)))'));
+  t('Y3 parses to and(xor(A,C),xor(B,D))', () => eq(shape(compile('Y3 = (A⊕C)·(B⊕D)').simp), 'and(xor(A,C),xor(B,D))'));
+  t('Y0 parses to or(and(A\',B),and(C\',D))', () => eq(shape(compile("Y0 = A'·B + C'·D").simp), 'or(and(not(A),B),and(not(C),D))'));
+  // truth tables (rows in order ABCD = 0000 … 1111)
+  t('Y1 truth table', () => eq(ttString(compile('(A·C)+(B·D)').circuit), '0000010100110111'));
+  t('Y2 truth table (De Morgan, same as Y1)', () => eq(ttString(compile("((A'+C')(B'+D'))'").circuit), '0000010100110111'));
+  t('Y3 truth table', () => eq(ttString(compile('(A⊕C)·(B⊕D)').circuit), '0001001001001000'));
+  t('Y0 truth table', () => eq(ttString(compile("A'·B+C'·D").circuit), '0100111101000100'));   // verified by hand: minterms 1,4,5,6,7,9,13
+  // notation variants
+  t('AND variants', () => eq([...new Set(['A·B', 'A*B', 'AB', 'A AND B', 'A&B', 'A∧B', 'a b', 'A&&B'].map(fullTT))].join(), '0000000000001111'));
+  t('OR variants', () => eq([...new Set(['A+B', 'A OR B', 'A|B', 'A∨B', 'A||B'].map(fullTT))].join(), '0000111111111111'));
+  t('NOT variants', () => eq([...new Set(["A'", '!A', '~A', 'NOT A', '¬A', "a'"].map(fullTT))].join(), '1111111100000000'));
+  t('XOR variants', () => eq([...new Set(['A⊕B', 'A^B', 'A XOR B'].map(fullTT))].join(), '0000111111110000'));
+  t('NAND word = (A·B)\'', () => eq(fullTT('A NAND B'), fullTT("(A·B)'")));
+  t('NOR word = (A+B)\'', () => eq(fullTT('A NOR B'), fullTT("(A+B)'")));
+  t('XNOR word = (A⊕B)\'', () => eq(fullTT('A XNOR B'), fullTT("(A⊕B)'")));
+  t('NAND/NOR/XNOR become single gates', () => eq([compile("(A·B)'").str, compile("(A+B)'").str, compile("(A⊕B)'").str, compile('A NAND B').circuit.root.type].join(' '), "(A·B)' (A+B)' (A⊕B)' nand"));
+  t('double negation cancels', () => eq(shape(compile("A''").simp) + ' ' + shape(compile("((A·B)')'").simp), 'A and(A,B)'));
+  // precedence
+  t('AND binds tighter than OR', () => eq(shape(compile('A+B·C').simp), 'or(A,and(B,C))'));
+  t('AND binds tighter than XOR', () => eq(shape(compile('A⊕B·C').simp), 'xor(A,and(B,C))'));
+  t('XOR binds tighter than OR', () => eq(shape(compile('A+B⊕C').simp), 'or(A,xor(B,C))'));
+  t('prefix NOT binds tightest', () => eq(shape(compile('NOT A·B').simp), 'and(not(A),B)'));
+  t('postfix NOT on a group', () => eq(shape(compile("(A+B)'C").simp), 'and(nor(A,B),C)'));
+  // n-input gates
+  t('A·B·C is one 3-input AND', () => eq(shape(compile('A·B·C').simp), 'and(A,B,C)'));
+  t('(A·B)·C flattens to 3-input AND', () => eq(shape(compile('(A·B)·C').simp), 'and(A,B,C)'));
+  t('A+B+C+D is one 4-input OR', () => eq(shape(compile('A+B+C+D').simp), 'or(A,B,C,D)'));
+  t('A⊕B⊕C is one 3-input XOR (odd parity)', () => eq(shape(compile('A⊕B⊕C').simp) + ' ' + fullTT('A⊕B⊕C'), 'xor(A,B,C) 0011110011000011'));
+  t('5-input chains are split into ≤4-input gates', () => eq(shape(compile("A·B·C·D·A'").simp), "and(and(A,B,C),and(D,not(A)))"));
+  // constants and sharing
+  t('constants', () => eq(fullTT('A·1') + ' ' + fullTT('A+1') + ' ' + fullTT("0'"), '0000000011111111 1111111111111111 1111111111111111'));
+  t("shared sub-expression A' is one node", () => eq(compile("A'·B + A'·C").circuit.nodes.filter(n => n.type === 'not').length, 1));
+  // errors
+  const err = (s) => { try { compile(s); return 'no error'; } catch (e) { return e instanceof ParseError ? `${e.message}@${e.pos}` : 'wrong error type: ' + e.message; } };
+  t('error: dangling operator', () => eq(err('A+'), 'Unexpected end of expression — expected a variable, constant or "("@2'));
+  t('error: unbalanced (', () => eq(err('(A'), 'Missing ")" for the "(" at position 1@2'));
+  t('error: unbalanced )', () => eq(err('A)'), 'Unexpected \')\' at position 2@1'));
+  t('error: unknown symbol', () => eq(err('A+E'), "Unknown symbol 'E' — inputs must be A, B, C or D@2"));
+  t('error: double operator', () => eq(err('A ++ B'), 'Unexpected operator \'+\' at position 4 — expected a variable, constant or "("@3'));
+  t('error: bad output name', () => eq(err('1Y = A'), 'The output name before "=" must be a simple name like Y or Y2@0'));
+  t('error: empty', () => eq(err('Y ='), 'Expression is empty@3'));
+  // rendering: every wire routes (no fallbacks) for the examples and some extras
+  for (const s of ['Y1 = (A·C) + (B·D)', "Y2 = ((A'+C')(B'+D'))'", 'Y3 = (A⊕C)·(B⊕D)', "Y0 = A'·B + C'·D", 'A·B·C+D', "(A+B)'·(C⊕D)'·A'", 'A', "A'", 'A⊕B⊕C⊕D', "(A·B)'+(A·C)'+(B·C)'", "A·B·C·D·A'", "((A+B)·C)'⊕D"]) {
+    t('renders without routing fallbacks: ' + s, () => { const c = compile(s); const r = renderSVG(c.circuit, c.name); return r.fallbacks === 0 ? true : `${r.fallbacks} fallback wire(s)`; });
+  }
+  t('table markdown has 2^n rows', () => eq(tableMarkdown(truthTable(compile('A·B·C').circuit), 'Y', true).split('\n').length, 2 + 8));
+  return results;
+}
+
+/* ---------------------------------------------------------------------------
+   11. UI
+   --------------------------------------------------------------------------- */
+(function main() {
+  const $ = id => document.getElementById(id);
+  const eqIn = $('eq'), errBox = $('err'), diag = $('diagram'), legend = $('legend'), truth = $('truth');
+  const showLabels = $('showLabels'), showMid = $('showMid'), toast = $('toast');
+  const CHIPS = { not: ['NOT', '74LS04'], and: ['AND', '74LS08'], or: ['OR', '74LS32'], nand: ['NAND', '74LS00'], nor: ['NOR', '74LS02'], xor: ['XOR', '74LS86'], xnor: ['XNOR', '74LS266'] };
+  let current = null;   // { name, circuit, tt, svg, W, H }
+  let toastTimer = 0;
+
+  function flash(msg) { toast.textContent = msg; toast.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove('show'), 1800); }
+
+  function showError(e, input) {
+    let msg = e.message;
+    if (typeof e.pos === 'number') {
+      const p = Math.min(e.pos, input.length);
+      if (!/position \d+/.test(msg) && !/at the end/.test(msg)) msg += ` (position ${p + 1})`;
+      msg += '\n' + input + '\n' + ' '.repeat(p) + '^'.repeat(Math.max(1, Math.min(e.len || 1, input.length - p || 1)));
+    }
+    errBox.textContent = msg; errBox.classList.add('show');
+    diag.innerHTML = '<p class="hint" style="margin:8px;color:#5E6470">Fix the expression to see the diagram.</p>';
+    legend.innerHTML = ''; truth.innerHTML = '';
+    setButtons(false);
+  }
+  function setButtons(on) { ['dlSvg', 'dlPng', 'dlTt', 'cpMd', 'cpCsv'].forEach(id => { $(id).disabled = !on; }); }
+
+  function update() {
+    const input = eqIn.value;
+    if (!input.trim()) {
+      errBox.classList.remove('show'); current = null;
+      diag.innerHTML = '<p class="hint" style="margin:8px;color:#5E6470">Type an equation above or pick an example.</p>';
+      legend.innerHTML = ''; truth.innerHTML = ''; setButtons(false);
+      history.replaceState(null, '', location.pathname + location.search);
+      return;
+    }
+    let c;
+    try { c = compile(input); }
+    catch (e) { if (e instanceof ParseError) { showError(e, input); return; } throw e; }
+    errBox.classList.remove('show');
+    const r = renderSVG(c.circuit, c.name, { showLabels: showLabels.checked });
+    const tt = truthTable(c.circuit);
+    current = { name: c.name, circuit: c.circuit, tt, svg: r.svg, W: r.W, H: r.H };
+    diag.innerHTML = r.svg;
+    truth.innerHTML = tableHTML(tt, c.name, showMid.checked);
+    // chip legend
+    const counts = {};
+    for (const g of c.circuit.gates) counts[g.type] = (counts[g.type] || 0) + 1;
+    const maxIn = Math.max(0, ...c.circuit.gates.map(g => g.inputs.length));
+    let lg = '';
+    for (const k of Object.keys(CHIPS)) if (counts[k]) lg += `<span><b>${CHIPS[k][0]}</b> ×${counts[k]} · ${CHIPS[k][1]}</span>`;
+    if (!lg) lg = '<span>No gates — the output is an input passed straight through.</span>';
+    if (maxIn > 2) lg += '<span class="note">The listed chips are 2-input parts; cascade them or use 3/4-input parts (e.g. 74LS11 / 74LS21 AND, 74LS10 / 74LS20 NAND, 74LS27 NOR) for the wider gates.</span>';
+    legend.innerHTML = lg;
+    setButtons(true);
+    history.replaceState(null, '', location.pathname + location.search + '#eq=' + encodeURIComponent(input));
+  }
+
+  // live updates (debounced)
+  let timer = 0;
+  eqIn.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(update, 150); });
+  showLabels.addEventListener('change', () => { const g = diag.querySelector('g.mid'); if (g) g.style.display = showLabels.checked ? '' : 'none'; if (current) current.svg = renderSVG(current.circuit, current.name, { showLabels: showLabels.checked }).svg; });
+  showMid.addEventListener('change', () => { const t = truth.querySelector('table'); if (t) t.classList.toggle('hide-mid', !showMid.checked); });
+
+  $('examples').addEventListener('change', e => { if (e.target.value) { eqIn.value = e.target.value; update(); } e.target.value = ''; });
+  $('palette').addEventListener('click', e => {
+    const b = e.target.closest('button[data-ins]'); if (!b) return;
+    const s = b.dataset.ins, start = eqIn.selectionStart ?? eqIn.value.length, end = eqIn.selectionEnd ?? start;
+    eqIn.value = eqIn.value.slice(0, start) + s + eqIn.value.slice(end);
+    eqIn.focus(); eqIn.setSelectionRange(start + s.length, start + s.length);
+    update();
+  });
+
+  // export
+  $('dlSvg').addEventListener('click', () => { if (!current) return; downloadBlob(new Blob([current.svg], { type: 'image/svg+xml;charset=utf-8' }), safeName(current.name) + '.svg'); });
+  $('dlPng').addEventListener('click', async () => {
+    if (!current) return;
+    try { downloadBlob(await svgToPngBlob(current.svg, current.W, current.H, 2), safeName(current.name) + '.png'); }
+    catch (e) { flash('PNG export failed: ' + e.message); }
+  });
+  $('dlTt').addEventListener('click', () => {
+    if (!current) return;
+    tablePNG(current.tt, current.name, showMid.checked, 2).toBlob(b => { if (b) downloadBlob(b, safeName(current.name) + '-truth-table.png'); else flash('PNG export failed'); }, 'image/png');
+  });
+  async function copyText(text, what) {
+    try { await navigator.clipboard.writeText(text); flash('Copied ' + what); }
+    catch (e) {
+      const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); flash('Copied ' + what); } catch (e2) { flash('Copy failed — your browser blocked clipboard access'); }
+      ta.remove();
+    }
+  }
+  $('cpMd').addEventListener('click', () => { if (current) copyText(tableMarkdown(current.tt, current.name, showMid.checked), 'Markdown table'); });
+  $('cpCsv').addEventListener('click', () => { if (current) copyText(tableCSV(current.tt, current.name, showMid.checked), 'CSV'); });
+
+  // URL hash ↔ equation
+  function loadFromHash() {
+    const m = /(?:^|[#&])eq=([^&]*)/.exec(location.hash);
+    if (m) { try { eqIn.value = decodeURIComponent(m[1]); } catch (e) { eqIn.value = m[1]; } return true; }
+    return false;
+  }
+  window.addEventListener('hashchange', () => { if (loadFromHash()) update(); });
+  if (!loadFromHash()) eqIn.value = 'Y1 = (A·C) + (B·D)';
+  update();
+
+  // self-tests
+  if (/[?&]test=1/.test(location.search)) {
+    const results = runSelfTests();
+    const failed = results.filter(r => !r.ok);
+    const box = $('testbox');
+    box.textContent = `Self-tests: ${results.length - failed.length} / ${results.length} passed` + (failed.length ? '\n' + failed.map(f => `✗ ${f.label}: ${f.detail}`).join('\n') : '');
+    box.classList.add('show'); box.classList.toggle('fail', failed.length > 0);
+    for (const r of results) (r.ok ? console.log : console.error)(`${r.ok ? '✓' : '✗'} ${r.label}${r.ok ? '' : ' — ' + r.detail}`);
+    console.log(`Self-tests: ${results.length - failed.length}/${results.length} passed`);
+    window.__selfTests = results;
+  }
+  window.LogicTool = { parseEquation, simplify, buildCircuit, truthTable, renderSVG, compile, runSelfTests };
+})();
+</script>
+</body>
+</html>

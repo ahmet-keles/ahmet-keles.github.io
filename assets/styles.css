@@ -349,6 +349,21 @@
     max-inline-size: 58ch;
     font-size: 1.2rem;
     color: var(--ink-soft);
+
+    /* The "now" line takes over the gap below, so give it back. */
+    &:has(+ .hero-now) { margin-block-end: 1.125rem; }
+  }
+
+  .hero-now {
+    margin-block-end: 2rem;
+    font-size: 0.94rem;
+    color: var(--muted);
+
+    a {
+      font-weight: 600;
+      text-decoration: none;
+      &:hover { text-decoration: underline; }
+    }
   }
 
   .hero-actions,
@@ -665,7 +680,49 @@
       font-size: 0.875rem;
       font-weight: 500;
       color: var(--ink-soft);
+
+      /* A chip that links to evidence draws its own border, so the list
+         item steps out of the way rather than nesting two of them. */
+      &:has(> a) {
+        padding: 0;
+        border: 0;
+        background: none;
+      }
     }
+
+    a {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 0.4375rem;
+      padding: 0.3125rem 0.75rem;
+      border: 1px solid var(--rule);
+      border-radius: 7px;
+      background: var(--surface);
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--ink);
+      text-decoration: none;
+
+      &:hover { border-color: var(--accent); color: var(--accent); }
+
+      small {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        letter-spacing: 0.02em;
+        color: var(--muted);
+      }
+    }
+  }
+
+  .skills-note {
+    max-inline-size: 72ch;
+    margin-block-start: 1.75rem;
+    padding-block-start: 1.125rem;
+    border-block-start: 1px solid var(--rule);
+    font-size: 0.9rem;
+    color: var(--muted);
+
+    strong { font-weight: 600; color: var(--ink-soft); }
   }
 
   /* ---------- contact ---------- */
